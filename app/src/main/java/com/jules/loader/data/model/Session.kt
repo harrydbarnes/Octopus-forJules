@@ -37,7 +37,7 @@ data class PullRequest(
 @Parcelize
 data class SourceContext(
     @SerializedName(value = "source", alternate = ["name"]) val source: String,
-    @SerializedName("githubRepo") val githubRepoContext: GithubRepoContext?,
+    @SerializedName("githubRepoContext") val githubRepoContext: GithubRepoContext?,
     val id: String? = null
 ) : Parcelable {
     val cleanSource: String
