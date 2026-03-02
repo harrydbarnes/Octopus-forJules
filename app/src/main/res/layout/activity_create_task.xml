@@ -117,6 +117,91 @@
                     android:gravity="top" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptPerformance"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_performance_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptDesign"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_design_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptSecurity"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_security_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptBugHunt"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_bug_hunt_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptUpdateDependencies"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_update_dependencies_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptReadme"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_readme_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptSimplify"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_simplify_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptRefactor"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_refactor_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPromptUnitTests"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/prompt_unit_tests_title" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
             <Button
                 android:id="@+id/btn_start_task"
                 android:layout_width="match_parent"

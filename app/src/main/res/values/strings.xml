@@ -136,4 +136,15 @@
     <string name="status_initialising">Initialising</string>
     <string name="status_idle">Idle</string>
     <string name="error_load_branches">Failed to load branches</string>
+
+    <!-- Prompt Gallery Titles -->
+    <string name="prompt_performance_title">Performance</string>
+    <string name="prompt_design_title">Design</string>
+    <string name="prompt_security_title">Security</string>
+    <string name="prompt_bug_hunt_title">Bug Hunt</string>
+    <string name="prompt_update_dependencies_title">Update Dependencies</string>
+    <string name="prompt_readme_title">Readme</string>
+    <string name="prompt_simplify_title">Simplify</string>
+    <string name="prompt_refactor_title">Refactor</string>
+    <string name="prompt_unit_tests_title">Unit Tests</string>
 </resources>

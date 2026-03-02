@@ -77,6 +77,7 @@ class CreateTaskActivity : BaseActivity() {
 
         setupRepoSelector()
         setupVoiceInput()
+        setupPromptGallery()
         observeViewModel()
 
         binding.btnStartTask.setOnClickListener {
@@ -260,6 +261,45 @@ class CreateTaskActivity : BaseActivity() {
         // Initial state check
         val initialHasRepo = !binding.repoInput.text.isNullOrBlank()
         binding.branchInputLayout.visibility = if (initialHasRepo) View.VISIBLE else View.INVISIBLE
+    }
+
+
+    private fun readAssetPrompt(filename: String): String {
+        return try {
+            assets.open("prompts/$filename").bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+            "Error loading prompt"
+        }
+    }
+
+    private fun setupPromptGallery() {
+        binding.btnPromptPerformance.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("performance.md"))
+        }
+        binding.btnPromptDesign.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("design.md"))
+        }
+        binding.btnPromptSecurity.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("security.md"))
+        }
+        binding.btnPromptBugHunt.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("bug_hunt.md"))
+        }
+        binding.btnPromptUpdateDependencies.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("update_dependencies.md"))
+        }
+        binding.btnPromptReadme.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("readme.md"))
+        }
+        binding.btnPromptSimplify.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("simplify.md"))
+        }
+        binding.btnPromptRefactor.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("refactor.md"))
+        }
+        binding.btnPromptUnitTests.setOnClickListener {
+            binding.taskInput.setText(readAssetPrompt("unit_tests.md"))
+        }
     }
 
     private fun setupVoiceInput() {
