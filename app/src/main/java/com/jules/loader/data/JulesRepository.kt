@@ -143,8 +143,7 @@ class JulesRepository private constructor(private val context: Context) {
         val sourceContext = if (repoUrl != null) {
             SourceContext(
                 source = repoUrl,
-                githubRepoContext = GithubRepoContext(startingBranch = branch, branches = null, defaultBranch = null, owner = "", repo = "", isPrivate = false),
-                id = ""
+                githubRepoContext = GithubRepoContext(startingBranch = branch, branches = null, defaultBranch = null)
             )
         } else null
         val request = CreateSessionRequest(
