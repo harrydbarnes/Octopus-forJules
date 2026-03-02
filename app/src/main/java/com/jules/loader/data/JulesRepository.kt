@@ -79,7 +79,7 @@ class JulesRepository private constructor(private val context: Context) {
     private val service = retrofit.create(JulesService::class.java)
 
     private var cachedSessions: List<Session>? = null
-    private var cachedSources: List<SourceContext>? = null
+    private var cachedSources: ListSourcesResponse? = null
     private var lastSourcesFetchTime: Long = 0
 
     companion object {
@@ -197,14 +197,14 @@ class JulesRepository private constructor(private val context: Context) {
     ): ListSourcesResponse {
         // Simple cache behavior: only cache the first unfiltered page
         if (filter == null && pageToken == null && hasValidSourceCache()) {
-            return ListSourcesResponse(cachedSources, null)
+            return cachedSources!!
         }
 
         val apiKey = requireApiKey()
         val response = service.listSources(apiKey, filter, pageSize, pageToken)
 
         if (filter == null && pageToken == null) {
-            cachedSources = response.sources
+            cachedSources = response
             lastSourcesFetchTime = System.currentTimeMillis()
         }
         return response

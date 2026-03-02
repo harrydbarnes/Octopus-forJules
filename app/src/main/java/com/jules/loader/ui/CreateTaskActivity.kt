@@ -84,7 +84,7 @@ class CreateTaskActivity : BaseActivity() {
             if (prompt.isNotEmpty()) {
                 val repoInputText = binding.repoInput.text.toString().takeIf { it.isNotBlank() }
                 val repo = if (repoInputText != null) {
-                    sourceMap.getValue(repoInputText)
+                    sourceMap[repoInputText]
                 } else null
                 val branch = binding.branchInput.text.toString().takeIf { it.isNotBlank() }
                 val automationMode = if (binding.switchAutoCreatePr.isChecked) "AUTO_CREATE_PR" else null
