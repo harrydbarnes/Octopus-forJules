@@ -27,6 +27,7 @@ import com.jules.loader.R
 import com.jules.loader.data.JulesRepository
 import com.jules.loader.data.model.SourceContext
 import com.jules.loader.databinding.ActivityCreateTaskBinding
+import com.jules.loader.util.PreferenceUtils
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -40,6 +41,7 @@ class CreateTaskActivity : BaseActivity() {
     private var originalTextBeforeSpeech = ""
     private var repoAdapter: ArrayAdapter<String>? = null
     private var branchAdapter: ArrayAdapter<String>? = null
+    private val sourceMap = mutableMapOf<String, String>()
 
     companion object {
         private val TAG = CreateTaskActivity::class.java.simpleName
@@ -80,7 +82,10 @@ class CreateTaskActivity : BaseActivity() {
         binding.btnStartTask.setOnClickListener {
             val prompt = binding.taskInput.text.toString().trim()
             if (prompt.isNotEmpty()) {
-                val repo = binding.repoInput.text.toString().takeIf { it.isNotBlank() }
+                val repoInputText = binding.repoInput.text.toString().takeIf { it.isNotBlank() }
+                val repo = if (repoInputText != null) {
+                    sourceMap[repoInputText]
+                } else null
                 val branch = binding.branchInput.text.toString().takeIf { it.isNotBlank() }
                 val automationMode = if (binding.switchAutoCreatePr.isChecked) "AUTO_CREATE_PR" else null
                 val requirePlanApproval = binding.switchRequirePlanApproval.isChecked
@@ -118,7 +123,25 @@ class CreateTaskActivity : BaseActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.availableSources.collectLatest { sources ->
-                        val sourceNames = sources.map { it.source }.distinct()
+                        sourceMap.clear()
+
+                        val isShortenEnabled = PreferenceUtils.isShortenRepoNamesEnabled(this@CreateTaskActivity)
+                        val repoNameCounts = sources.groupingBy { it.cleanSource.substringAfterLast('/') }.eachCount()
+
+                        val sourceNames = sources.map { source ->
+                            val shortName = source.cleanSource.substringAfterLast('/')
+                            val isDuplicate = (repoNameCounts[shortName] ?: 0) > 1
+
+                            val displayName = if (isShortenEnabled && !isDuplicate) {
+                                shortName
+                            } else {
+                                source.cleanSource
+                            }
+
+                            sourceMap[displayName] = source.source
+                            displayName
+                        }.distinct()
+
                         repoAdapter?.clear()
                         repoAdapter?.addAll(sourceNames)
                         repoAdapter?.notifyDataSetChanged()
@@ -156,6 +179,36 @@ class CreateTaskActivity : BaseActivity() {
                 }
 
                 launch {
+                    viewModel.availableBranches.collectLatest { branches ->
+                        branchAdapter?.clear()
+                        branchAdapter?.addAll(branches)
+                        branchAdapter?.notifyDataSetChanged()
+                    }
+                }
+
+                launch {
+                    viewModel.selectedBranch.collectLatest { branch ->
+                        if (branch != null) {
+                            binding.branchInput.setText(branch, false)
+                        } else {
+                            binding.branchInput.setText("", false)
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.isBranchesLoading.collectLatest { isLoading ->
+                        if (isLoading) {
+                            binding.branchInputLayout.hint = "Loading branches..."
+                            binding.branchInputLayout.isEnabled = false
+                        } else {
+                            binding.branchInputLayout.hint = "Branch (Optional)"
+                            binding.branchInputLayout.isEnabled = true
+                        }
+                    }
+                }
+
+                launch {
                     viewModel.errorEvent.collect { errorResId ->
                         Toast.makeText(this@CreateTaskActivity, errorResId, Toast.LENGTH_LONG).show()
                     }
@@ -185,23 +238,14 @@ class CreateTaskActivity : BaseActivity() {
         }
 
         binding.repoInput.setOnItemClickListener { parent, _, position, _ ->
-            val selectedSourceName = parent.getItemAtPosition(position) as String
-            val source = viewModel.availableSources.value.find { it.source == selectedSourceName }
-            val branches = source?.githubRepoContext?.branches?.map { it.displayName } ?: emptyList()
+            val selectedDisplayName = parent.getItemAtPosition(position) as String
+            val fullSource = sourceMap.getValue(selectedDisplayName)
+            viewModel.onSourceSelected(fullSource)
+        }
 
-            branchAdapter?.clear()
-            branchAdapter?.addAll(branches)
-            branchAdapter?.notifyDataSetChanged()
-
-            // If a default branch exists, select it
-            val defaultBranch = source?.githubRepoContext?.defaultBranch?.displayName
-            if (defaultBranch != null && branches.contains(defaultBranch)) {
-                binding.branchInput.setText(defaultBranch, false)
-            } else if (branches.isNotEmpty()) {
-                binding.branchInput.setText(branches.first(), false)
-            } else {
-                binding.branchInput.setText("")
-            }
+        binding.branchInput.setOnItemClickListener { parent, _, position, _ ->
+            val selectedBranch = parent.getItemAtPosition(position) as String
+            viewModel.onBranchSelected(selectedBranch)
         }
 
         binding.repoInput.addTextChangedListener {

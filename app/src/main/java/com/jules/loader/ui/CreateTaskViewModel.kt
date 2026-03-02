@@ -28,6 +28,15 @@ class CreateTaskViewModel(private val repository: JulesRepository) : ViewModel()
     private val _isSourcesLoading = MutableStateFlow(false)
     val isSourcesLoading: StateFlow<Boolean> = _isSourcesLoading
 
+    private val _availableBranches = MutableStateFlow<List<String>>(emptyList())
+    val availableBranches: StateFlow<List<String>> = _availableBranches
+
+    private val _isBranchesLoading = MutableStateFlow(false)
+    val isBranchesLoading: StateFlow<Boolean> = _isBranchesLoading
+
+    private val _selectedBranch = MutableStateFlow<String?>(null)
+    val selectedBranch: StateFlow<String?> = _selectedBranch
+
     companion object {
         private val TAG = CreateTaskViewModel::class.java.simpleName
     }
@@ -42,8 +51,9 @@ class CreateTaskViewModel(private val repository: JulesRepository) : ViewModel()
                 _isSourcesLoading.value = true
             }
             try {
-                val sources = repository.getSources()
-                _availableSources.value = sources
+                // Fetch first page, handle further pages locally if needed.
+                val response = repository.getSources()
+                _availableSources.value = response.sources ?: emptyList()
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Failed to load repositories", e)
                 _errorEvent.emit(R.string.error_load_repositories)
@@ -72,5 +82,35 @@ class CreateTaskViewModel(private val repository: JulesRepository) : ViewModel()
                 _isLoading.value = false
             }
         }
+    }
+    fun onSourceSelected(sourceName: String) {
+        viewModelScope.launch {
+            _isBranchesLoading.value = true
+            try {
+                val fullSource = repository.getSource(sourceName)
+                val branches = fullSource.githubRepoContext?.branches?.map { it.displayName } ?: emptyList()
+                _availableBranches.value = branches
+
+                val defaultBranch = fullSource.githubRepoContext?.defaultBranch?.displayName
+                if (defaultBranch != null && branches.contains(defaultBranch)) {
+                    _selectedBranch.value = defaultBranch
+                } else if (branches.isNotEmpty()) {
+                    _selectedBranch.value = branches.first()
+                } else {
+                    _selectedBranch.value = null
+                }
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Failed to load branches for source", e)
+                _errorEvent.emit(R.string.error_load_branches)
+                _availableBranches.value = emptyList()
+                _selectedBranch.value = null
+            } finally {
+                _isBranchesLoading.value = false
+            }
+        }
+    }
+
+    fun onBranchSelected(branchName: String) {
+        _selectedBranch.value = branchName
     }
 }

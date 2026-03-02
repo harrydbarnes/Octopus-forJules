@@ -52,6 +52,20 @@ interface JulesService {
 
     @GET("v1alpha/sources")
     suspend fun listSources(
-        @Header("X-Goog-Api-Key") apiKey: String
+        @Header("X-Goog-Api-Key") apiKey: String,
+        @Query("filter") filter: String? = null,
+        @Query("pageSize") pageSize: Int = 20,
+        @Query("pageToken") pageToken: String? = null
     ): ListSourcesResponse
+    @GET("v1alpha/{name}")
+    suspend fun getSource(
+        @Header("X-Goog-Api-Key") apiKey: String,
+        @Path("name", encoded = true) name: String
+    ): SourceContext
+
+    @GET("v1alpha/{name}")
+    suspend fun getActivity(
+        @Header("X-Goog-Api-Key") apiKey: String,
+        @Path("name", encoded = true) name: String
+    ): ActivityLog
 }

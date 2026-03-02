@@ -81,14 +81,16 @@ data class ActivityLog(
     val description: String?,
     @SerializedName("createTime") val timestamp: String?,
     val type: String?,
+    val originator: String?,
 
     // Union fields containing the replies/comments
-    val userMessage: MessageLog?,
-    val agentMessage: MessageLog?,
+    @SerializedName("userMessaged") val userMessage: MessageLog?,
+    @SerializedName("agentMessaged") val agentMessage: MessageLog?,
     val planGenerated: PlanGeneratedLog?,
     val planApproved: PlanApprovedLog?,
     val progressUpdated: ProgressUpdatedLog?,
     val sessionCompleted: SessionCompletedLog?,
+    val sessionFailed: SessionFailedLog?,
     val artifacts: List<Artifact>?
 ) {
     fun getResolvedType(): String {
@@ -99,6 +101,7 @@ data class ActivityLog(
             planApproved != null -> "PLAN APPROVED"
             progressUpdated != null -> "PROGRESS UPDATED"
             sessionCompleted != null -> "SESSION COMPLETED"
+            sessionFailed != null -> "SESSION FAILED"
             else -> "ACTIVITY"
         }
     }
@@ -111,6 +114,7 @@ data class ActivityLog(
                planApproved?.planId?.let { "Plan Approved: $it" } ?:
                progressUpdated?.description ?: progressUpdated?.title ?:
                sessionCompleted?.let { "Session Completed" } ?:
+               sessionFailed?.reason ?:
                description ?: "No details"
     }
 }
@@ -178,5 +182,10 @@ data class Media(
 
 // Response models for user sources (repositories)
 data class ListSourcesResponse(
-    val sources: List<SourceContext>?
+    val sources: List<SourceContext>?,
+    val nextPageToken: String?
+)
+
+data class SessionFailedLog(
+    val reason: String?
 )
