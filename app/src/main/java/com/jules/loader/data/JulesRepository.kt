@@ -140,12 +140,18 @@ class JulesRepository private constructor(private val context: Context) {
         requirePlanApproval: Boolean? = null
     ): Session {
         val apiKey = requireApiKey()
+
         val sourceContext = if (repoUrl != null) {
+            val githubContext = if (!branch.isNullOrBlank()) {
+                GithubRepoContext(startingBranch = branch)
+            } else null
+
             SourceContext(
                 source = repoUrl,
-                githubRepoContext = GithubRepoContext(startingBranch = branch, branches = null, defaultBranch = null)
+                githubRepoContext = githubContext
             )
         } else null
+
         val request = CreateSessionRequest(
             prompt = prompt,
             sourceContext = sourceContext,
