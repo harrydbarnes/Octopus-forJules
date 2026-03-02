@@ -84,7 +84,7 @@ class CreateTaskActivity : BaseActivity() {
             if (prompt.isNotEmpty()) {
                 val repoInputText = binding.repoInput.text.toString().takeIf { it.isNotBlank() }
                 val repo = if (repoInputText != null) {
-                    sourceMap[repoInputText] ?: repoInputText
+                    sourceMap.getValue(repoInputText)
                 } else null
                 val branch = binding.branchInput.text.toString().takeIf { it.isNotBlank() }
                 val automationMode = if (binding.switchAutoCreatePr.isChecked) "AUTO_CREATE_PR" else null
@@ -124,11 +124,24 @@ class CreateTaskActivity : BaseActivity() {
                 launch {
                     viewModel.availableSources.collectLatest { sources ->
                         sourceMap.clear()
+
+                        val isShortenEnabled = PreferenceUtils.isShortenRepoNamesEnabled(this@CreateTaskActivity)
+                        val repoNameCounts = sources.groupingBy { it.cleanSource.substringAfterLast('/') }.eachCount()
+
                         val sourceNames = sources.map { source ->
-                            val displayName = PreferenceUtils.getDisplayRepoName(this@CreateTaskActivity, source.cleanSource)
+                            val shortName = source.cleanSource.substringAfterLast('/')
+                            val isDuplicate = (repoNameCounts[shortName] ?: 0) > 1
+
+                            val displayName = if (isShortenEnabled && !isDuplicate) {
+                                shortName
+                            } else {
+                                source.cleanSource
+                            }
+
                             sourceMap[displayName] = source.source
                             displayName
                         }.distinct()
+
                         repoAdapter?.clear()
                         repoAdapter?.addAll(sourceNames)
                         repoAdapter?.notifyDataSetChanged()
@@ -226,7 +239,7 @@ class CreateTaskActivity : BaseActivity() {
 
         binding.repoInput.setOnItemClickListener { parent, _, position, _ ->
             val selectedDisplayName = parent.getItemAtPosition(position) as String
-            val fullSource = sourceMap[selectedDisplayName] ?: selectedDisplayName
+            val fullSource = sourceMap.getValue(selectedDisplayName)
             viewModel.onSourceSelected(fullSource)
         }
 
