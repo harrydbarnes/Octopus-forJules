@@ -38,7 +38,7 @@ data class PullRequest(
 data class SourceContext(
     @SerializedName(value = "source", alternate = ["name"]) val source: String,
     @SerializedName("githubRepo") val githubRepoContext: GithubRepoContext?,
-    val id: String = ""
+    val id: String? = null
 ) : Parcelable {
     val cleanSource: String
         get() = if (source.startsWith("sources/github/")) source.removePrefix("sources/github/") else source
@@ -49,9 +49,9 @@ data class GithubRepoContext(
     val startingBranch: String? = null,
     val branches: List<Branch>? = null,
     val defaultBranch: Branch? = null,
-    val owner: String = "",
-    val repo: String = "",
-    val isPrivate: Boolean = false
+    val owner: String? = null,
+    val repo: String? = null,
+    val isPrivate: Boolean? = null
 ) : Parcelable
 
 @Parcelize
