@@ -50,6 +50,7 @@ class CreateTaskActivity : BaseActivity() {
         private const val MIN_DB_LEVEL = -2f
         private const val MAX_DB_LEVEL = 10f
         private const val DB_LEVEL_RANGE = MAX_DB_LEVEL - MIN_DB_LEVEL
+        private const val ANIMATION_DURATION_MS = 200L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -269,38 +270,27 @@ class CreateTaskActivity : BaseActivity() {
     private fun readAssetPrompt(filename: String): String {
         return try {
             assets.open("prompts/$filename").bufferedReader().use { it.readText() }
-        } catch (e: Exception) {
-            "Error loading prompt"
+        } catch (e: java.io.IOException) {
+            android.util.Log.e(TAG, "Error loading prompt: $filename", e)
+            getString(R.string.error_loading_prompt)
         }
     }
 
     private fun setupPromptGallery() {
-        binding.btnPromptPerformance.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("performance.md"))
-        }
-        binding.btnPromptDesign.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("design.md"))
-        }
-        binding.btnPromptSecurity.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("security.md"))
-        }
-        binding.btnPromptBugHunt.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("bug_hunt.md"))
-        }
-        binding.btnPromptUpdateDependencies.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("update_dependencies.md"))
-        }
-        binding.btnPromptReadme.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("readme.md"))
-        }
-        binding.btnPromptSimplify.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("simplify.md"))
-        }
-        binding.btnPromptRefactor.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("refactor.md"))
-        }
-        binding.btnPromptUnitTests.setOnClickListener {
-            binding.taskInput.setText(readAssetPrompt("unit_tests.md"))
+        mapOf(
+            binding.btnPromptPerformance to "performance.md",
+            binding.btnPromptDesign to "design.md",
+            binding.btnPromptSecurity to "security.md",
+            binding.btnPromptBugHunt to "bug_hunt.md",
+            binding.btnPromptUpdateDependencies to "update_dependencies.md",
+            binding.btnPromptReadme to "readme.md",
+            binding.btnPromptSimplify to "simplify.md",
+            binding.btnPromptRefactor to "refactor.md",
+            binding.btnPromptUnitTests to "unit_tests.md"
+        ).forEach { (button, filename) ->
+            button.setOnClickListener {
+                binding.taskInput.setText(readAssetPrompt(filename))
+            }
         }
     }
 
@@ -335,10 +325,10 @@ class CreateTaskActivity : BaseActivity() {
         TransitionManager.beginDelayedTransition(binding.contentContainer)
         if (expanding) {
             binding.taskInput.maxLines = Integer.MAX_VALUE
-            binding.btnExpandTaskInput.animate().rotation(180f).setDuration(200).start()
+            binding.btnExpandTaskInput.animate().rotation(180f).setDuration(ANIMATION_DURATION_MS).start()
         } else {
             binding.taskInput.maxLines = 3
-            binding.btnExpandTaskInput.animate().rotation(0f).setDuration(200).start()
+            binding.btnExpandTaskInput.animate().rotation(0f).setDuration(ANIMATION_DURATION_MS).start()
         }
     }
 
