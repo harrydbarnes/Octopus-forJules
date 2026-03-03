@@ -9,6 +9,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.transition.TransitionManager
+import android.util.Log
 import android.view.View
 import android.view.Window
 import android.widget.ArrayAdapter
