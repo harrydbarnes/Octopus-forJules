@@ -239,13 +239,23 @@ class CreateTaskActivity : BaseActivity() {
     private fun setupRepoSelector() {
         repoAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ArrayList())
         binding.repoInput.setAdapter(repoAdapter)
-        binding.repoInput.setOnClickListener { binding.repoInput.showDropDown() }
+        binding.repoInput.setOnClickListener {
+            if (binding.repoInput.isPopupShowing) {
+                binding.repoInput.dismissDropDown()
+            } else {
+                binding.repoInput.showDropDown()
+            }
+        }
 
         branchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ArrayList())
         binding.branchInput.setAdapter(branchAdapter)
         binding.branchInput.setOnClickListener {
             if (!binding.repoInput.text.isNullOrBlank()) {
-                binding.branchInput.showDropDown()
+                if (binding.branchInput.isPopupShowing) {
+                    binding.branchInput.dismissDropDown()
+                } else {
+                    binding.branchInput.showDropDown()
+                }
             }
         }
 
@@ -312,11 +322,27 @@ class CreateTaskActivity : BaseActivity() {
     private fun setupKeyboardFocusClear() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
             val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-            if (!isImeVisible && binding.taskInput.hasFocus()) {
-                binding.taskInput.clearFocus()
+            if (!isImeVisible) {
+                currentFocus?.clearFocus()
             }
             insets
         }
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (ev.action == android.view.MotionEvent.ACTION_DOWN) {
+            val v = currentFocus
+            if (v is android.widget.EditText) {
+                val outRect = android.graphics.Rect()
+                v.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
+                    v.clearFocus()
+                    val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun setupTaskInputExpansion() {
