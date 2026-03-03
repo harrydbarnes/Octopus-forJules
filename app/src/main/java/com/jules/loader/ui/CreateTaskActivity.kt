@@ -16,6 +16,8 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -86,6 +88,7 @@ class CreateTaskActivity : BaseActivity() {
         setupVoiceInput()
         setupPromptGallery()
         setupTaskInputExpansion()
+        setupKeyboardFocusClear()
         observeViewModel()
 
         binding.btnStartTask.setOnClickListener {
@@ -236,13 +239,23 @@ class CreateTaskActivity : BaseActivity() {
     private fun setupRepoSelector() {
         repoAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ArrayList())
         binding.repoInput.setAdapter(repoAdapter)
-        binding.repoInput.setOnClickListener { binding.repoInput.showDropDown() }
+        binding.repoInput.setOnClickListener {
+            if (binding.repoInput.isPopupShowing) {
+                binding.repoInput.dismissDropDown()
+            } else {
+                binding.repoInput.showDropDown()
+            }
+        }
 
         branchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ArrayList())
         binding.branchInput.setAdapter(branchAdapter)
         binding.branchInput.setOnClickListener {
             if (!binding.repoInput.text.isNullOrBlank()) {
-                binding.branchInput.showDropDown()
+                if (binding.branchInput.isPopupShowing) {
+                    binding.branchInput.dismissDropDown()
+                } else {
+                    binding.branchInput.showDropDown()
+                }
             }
         }
 
@@ -304,6 +317,32 @@ class CreateTaskActivity : BaseActivity() {
                 readAssetPrompt(filename)?.let { binding.taskInput.setText(it) }
             }
         }
+    }
+
+    private fun setupKeyboardFocusClear() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            if (!isImeVisible) {
+                currentFocus?.clearFocus()
+            }
+            insets
+        }
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (ev.action == android.view.MotionEvent.ACTION_DOWN) {
+            val v = currentFocus
+            if (v is android.widget.EditText) {
+                val outRect = android.graphics.Rect()
+                v.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
+                    v.clearFocus()
+                    val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                    imm?.hideSoftInputFromWindow(v.windowToken, 0)
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun setupTaskInputExpansion() {

@@ -36,6 +36,8 @@
         android:id="@+id/nestedScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -107,6 +109,7 @@
                     android:id="@+id/taskInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:hint="Describe the task for Jules..."
                     app:shapeAppearance="@style/ShapeAppearance.Jules.MediumComponent">
 
@@ -145,8 +148,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
-                    android:src="@drawable/ic_arrow_down"
-                    android:alpha="0.5" />
+                    android:src="@drawable/ic_arrow_down" />
             </RelativeLayout>
 
             <Button
