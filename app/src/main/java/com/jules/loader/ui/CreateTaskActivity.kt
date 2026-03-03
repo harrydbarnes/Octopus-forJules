@@ -78,6 +78,10 @@ class CreateTaskActivity : BaseActivity() {
         val factory = CreateTaskViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[CreateTaskViewModel::class.java]
 
+        binding.toolbar.setNavigationOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
+
         setupRepoSelector()
         setupVoiceInput()
         setupPromptGallery()
@@ -278,6 +282,12 @@ class CreateTaskActivity : BaseActivity() {
     }
 
     private fun setupPromptGallery() {
+        if (!PreferenceUtils.isPromptGalleryEnabled(this)) {
+            binding.tvPromptGalleryTitle.visibility = View.GONE
+            binding.promptGalleryContainer.visibility = View.GONE
+            return
+        }
+
         mapOf(
             binding.btnPromptPerformance to "performance.md",
             binding.btnPromptDesign to "design.md",
@@ -334,7 +344,7 @@ class CreateTaskActivity : BaseActivity() {
     }
 
     private fun setupVoiceInput() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+        if (!PreferenceUtils.isVoiceTypingEnabled(this) || !SpeechRecognizer.isRecognitionAvailable(this)) {
             binding.btnVoiceInput.visibility = View.GONE
             return
         }

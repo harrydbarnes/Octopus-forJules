@@ -26,6 +26,8 @@
     <string name="setting_use_dynamic_colours">Use Dynamic Colours</string>
     <string name="setting_display">Display</string>
     <string name="setting_shorten_repo_names">Shorten Repo Names</string>
+    <string name="setting_voice_typing">Enable Voice Typing</string>
+    <string name="setting_prompt_gallery">Enable Prompt Gallery</string>
     <string name="setting_theme">App Theme</string>
     <string name="theme_octopus">Octopus</string>
     <string name="theme_squid">Squid</string>

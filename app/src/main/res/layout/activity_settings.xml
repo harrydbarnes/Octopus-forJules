@@ -47,6 +47,22 @@
                     android:textColor="?attr/colorOnSurface"
                     android:checked="true" />
 
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_voice_typing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_voice_typing"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="true" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_prompt_gallery"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_prompt_gallery"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="true" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
