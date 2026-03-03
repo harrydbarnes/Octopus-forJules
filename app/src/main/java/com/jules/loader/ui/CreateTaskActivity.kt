@@ -9,6 +9,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.transition.TransitionManager
+import android.util.Log
 import android.view.View
 import android.view.Window
 import android.widget.ArrayAdapter
@@ -42,6 +43,7 @@ class CreateTaskActivity : BaseActivity() {
     private var repoAdapter: ArrayAdapter<String>? = null
     private var branchAdapter: ArrayAdapter<String>? = null
     private val sourceMap = mutableMapOf<String, String>()
+    private var isTaskInputExpanded = false
 
     companion object {
         private val TAG = CreateTaskActivity::class.java.simpleName
@@ -49,6 +51,7 @@ class CreateTaskActivity : BaseActivity() {
         private const val MIN_DB_LEVEL = -2f
         private const val MAX_DB_LEVEL = 10f
         private const val DB_LEVEL_RANGE = MAX_DB_LEVEL - MIN_DB_LEVEL
+        private const val ANIMATION_DURATION_MS = 200L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,8 +78,14 @@ class CreateTaskActivity : BaseActivity() {
         val factory = CreateTaskViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[CreateTaskViewModel::class.java]
 
+        binding.toolbar.setNavigationOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
+
         setupRepoSelector()
         setupVoiceInput()
+        setupPromptGallery()
+        setupTaskInputExpansion()
         observeViewModel()
 
         binding.btnStartTask.setOnClickListener {
@@ -262,12 +271,82 @@ class CreateTaskActivity : BaseActivity() {
         binding.branchInputLayout.visibility = if (initialHasRepo) View.VISIBLE else View.INVISIBLE
     }
 
-    private fun setupVoiceInput() {
-        binding.taskInputLayout.setEndIconDrawable(R.drawable.ic_mic)
-        binding.taskInputLayout.setEndIconContentDescription("Voice Input")
 
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            binding.taskInputLayout.isEndIconVisible = false
+    private fun readAssetPrompt(filename: String): String? {
+        return try {
+            assets.open("prompts/$filename").bufferedReader().use { it.readText() }
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "Error loading prompt: $filename", e)
+            Toast.makeText(this, R.string.error_loading_prompt, Toast.LENGTH_SHORT).show()
+            null
+        }
+    }
+
+    private fun setupPromptGallery() {
+        if (!PreferenceUtils.isPromptGalleryEnabled(this)) {
+            binding.tvPromptGalleryTitle.visibility = View.GONE
+            binding.promptGalleryContainer.visibility = View.GONE
+            return
+        }
+
+        mapOf(
+            binding.btnPromptPerformance to "performance.md",
+            binding.btnPromptDesign to "design.md",
+            binding.btnPromptSecurity to "security.md",
+            binding.btnPromptBugHunt to "bug_hunt.md",
+            binding.btnPromptUpdateDependencies to "update_dependencies.md",
+            binding.btnPromptReadme to "readme.md",
+            binding.btnPromptSimplify to "simplify.md",
+            binding.btnPromptRefactor to "refactor.md",
+            binding.btnPromptUnitTests to "unit_tests.md"
+        ).forEach { (button, filename) ->
+            button.setOnClickListener {
+                readAssetPrompt(filename)?.let { binding.taskInput.setText(it) }
+            }
+        }
+    }
+
+    private fun setupTaskInputExpansion() {
+        binding.btnExpandTaskInput.setOnClickListener {
+            toggleTaskInputExpansion()
+        }
+
+        binding.taskInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // If count > 1, it's a paste or programmatic insert, so don't auto-expand.
+                // If count == 1, it's a single character typed by the user.
+                if (count == 1 && binding.taskInput.hasFocus() && !isTaskInputExpanded) {
+                    if (binding.taskInput.lineCount > 3 || (s?.length ?: 0) > 150) {
+                        toggleTaskInputExpansion(forceExpand = true)
+                    }
+                }
+            }
+
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+    }
+
+    private fun toggleTaskInputExpansion(forceExpand: Boolean = false) {
+        val expanding = forceExpand || !isTaskInputExpanded
+        if (isTaskInputExpanded == expanding) return
+
+        isTaskInputExpanded = expanding
+
+        TransitionManager.beginDelayedTransition(binding.contentContainer)
+        if (expanding) {
+            binding.taskInput.maxLines = Integer.MAX_VALUE
+            binding.btnExpandTaskInput.animate().rotation(180f).setDuration(ANIMATION_DURATION_MS).start()
+        } else {
+            binding.taskInput.maxLines = 3
+            binding.btnExpandTaskInput.animate().rotation(0f).setDuration(ANIMATION_DURATION_MS).start()
+        }
+    }
+
+    private fun setupVoiceInput() {
+        if (!PreferenceUtils.isVoiceTypingEnabled(this) || !SpeechRecognizer.isRecognitionAvailable(this)) {
+            binding.btnVoiceInput.visibility = View.GONE
             return
         }
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this) ?: return
@@ -276,7 +355,7 @@ class CreateTaskActivity : BaseActivity() {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         }
 
-        binding.taskInputLayout.setEndIconOnClickListener {
+        binding.btnVoiceInput.setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_AUDIO)
             } else {

@@ -164,6 +164,16 @@ class SettingsActivity : BaseActivity() {
         binding.switchShortenRepoNames.setOnCheckedChangeListener { _, isChecked ->
             PreferenceUtils.setShortenRepoNamesEnabled(this, isChecked)
         }
+
+        binding.switchVoiceTyping.isChecked = PreferenceUtils.isVoiceTypingEnabled(this)
+        binding.switchVoiceTyping.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setVoiceTypingEnabled(this, isChecked)
+        }
+
+        binding.switchPromptGallery.isChecked = PreferenceUtils.isPromptGalleryEnabled(this)
+        binding.switchPromptGallery.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setPromptGalleryEnabled(this, isChecked)
+        }
     }
 
     private fun setupThemeSelection() {
