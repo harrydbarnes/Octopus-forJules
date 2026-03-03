@@ -99,34 +99,55 @@
                 android:textColor="?attr/colorOnSurface"
                 android:layout_marginBottom="16dp" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/taskInputLayout"
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Describe the task for Jules..."
-                app:endIconMode="custom"
-                app:endIconDrawable="@drawable/ic_mic"
-                app:endIconContentDescription="Voice Input"
-                app:shapeAppearance="@style/ShapeAppearance.Jules.MediumComponent">
+                android:layout_height="wrap_content">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/taskInput"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/taskInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minLines="3"
-                    android:gravity="top" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:hint="Describe the task for Jules..."
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_mic"
+                    app:endIconContentDescription="Voice Input"
+                    app:shapeAppearance="@style/ShapeAppearance.Jules.MediumComponent">
 
-            <HorizontalScrollView
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/taskInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minLines="3"
+                        android:maxLines="3"
+                        android:gravity="top" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <ImageView
+                    android:id="@+id/btnExpandTaskInput"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_alignBottom="@id/taskInputLayout"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:src="@drawable/ic_arrow_down"
+                    android:alpha="0.5" />
+            </RelativeLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:scrollbars="none">
+                android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_horizontal">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnPromptPerformance"
@@ -149,8 +170,15 @@
                         style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
                         android:text="@string/prompt_security_title" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_horizontal"
+                    android:layout_marginTop="4dp">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnPromptBugHunt"
@@ -173,8 +201,15 @@
                         style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
                         android:text="@string/prompt_readme_title" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_horizontal"
+                    android:layout_marginTop="4dp">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnPromptSimplify"
@@ -197,10 +232,9 @@
                         style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
                         android:text="@string/prompt_unit_tests_title" />
                 </LinearLayout>
-            </HorizontalScrollView>
+            </LinearLayout>
 
             <Button
                 android:id="@+id/btn_start_task"

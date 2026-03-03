@@ -42,6 +42,7 @@ class CreateTaskActivity : BaseActivity() {
     private var repoAdapter: ArrayAdapter<String>? = null
     private var branchAdapter: ArrayAdapter<String>? = null
     private val sourceMap = mutableMapOf<String, String>()
+    private var isTaskInputExpanded = false
 
     companion object {
         private val TAG = CreateTaskActivity::class.java.simpleName
@@ -78,6 +79,7 @@ class CreateTaskActivity : BaseActivity() {
         setupRepoSelector()
         setupVoiceInput()
         setupPromptGallery()
+        setupTaskInputExpansion()
         observeViewModel()
 
         binding.btnStartTask.setOnClickListener {
@@ -299,6 +301,44 @@ class CreateTaskActivity : BaseActivity() {
         }
         binding.btnPromptUnitTests.setOnClickListener {
             binding.taskInput.setText(readAssetPrompt("unit_tests.md"))
+        }
+    }
+
+    private fun setupTaskInputExpansion() {
+        binding.btnExpandTaskInput.setOnClickListener {
+            toggleTaskInputExpansion()
+        }
+
+        binding.taskInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // If count > 1, it's a paste or programmatic insert, so don't auto-expand.
+                // If count == 1, it's a single character typed by the user.
+                if (count == 1 && binding.taskInput.hasFocus() && !isTaskInputExpanded) {
+                    if (binding.taskInput.lineCount > 3 || (s?.length ?: 0) > 150) {
+                        toggleTaskInputExpansion(forceExpand = true)
+                    }
+                }
+            }
+
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+    }
+
+    private fun toggleTaskInputExpansion(forceExpand: Boolean = false) {
+        val expanding = forceExpand || !isTaskInputExpanded
+        if (isTaskInputExpanded == expanding) return
+
+        isTaskInputExpanded = expanding
+
+        TransitionManager.beginDelayedTransition(binding.contentContainer)
+        if (expanding) {
+            binding.taskInput.maxLines = Integer.MAX_VALUE
+            binding.btnExpandTaskInput.animate().rotation(180f).setDuration(200).start()
+        } else {
+            binding.taskInput.maxLines = 3
+            binding.btnExpandTaskInput.animate().rotation(0f).setDuration(200).start()
         }
     }
 
