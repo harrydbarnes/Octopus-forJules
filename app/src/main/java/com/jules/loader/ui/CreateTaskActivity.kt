@@ -271,7 +271,7 @@ class CreateTaskActivity : BaseActivity() {
         return try {
             assets.open("prompts/$filename").bufferedReader().use { it.readText() }
         } catch (e: java.io.IOException) {
-            android.util.Log.e(TAG, "Error loading prompt: $filename", e)
+            Log.e(TAG, "Error loading prompt: $filename", e)
             getString(R.string.error_loading_prompt)
         }
     }
