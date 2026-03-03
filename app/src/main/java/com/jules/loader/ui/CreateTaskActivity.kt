@@ -334,11 +334,8 @@ class CreateTaskActivity : BaseActivity() {
     }
 
     private fun setupVoiceInput() {
-        binding.taskInputLayout.setEndIconDrawable(R.drawable.ic_mic)
-        binding.taskInputLayout.setEndIconContentDescription("Voice Input")
-
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            binding.taskInputLayout.isEndIconVisible = false
+            binding.btnVoiceInput.visibility = View.GONE
             return
         }
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this) ?: return
@@ -347,7 +344,7 @@ class CreateTaskActivity : BaseActivity() {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         }
 
-        binding.taskInputLayout.setEndIconOnClickListener {
+        binding.btnVoiceInput.setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_AUDIO)
             } else {
