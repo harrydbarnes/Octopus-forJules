@@ -300,7 +300,7 @@ class CreateTaskActivity : BaseActivity() {
             binding.btnPromptUnitTests to "unit_tests.md"
         ).forEach { (button, filename) ->
             button.setOnClickListener {
-                binding.taskInput.setText(readAssetPrompt(filename))
+                readAssetPrompt(filename)?.let { binding.taskInput.setText(it) }
             }
         }
     }
