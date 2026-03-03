@@ -272,12 +272,13 @@ class CreateTaskActivity : BaseActivity() {
     }
 
 
-    private fun readAssetPrompt(filename: String): String {
+    private fun readAssetPrompt(filename: String): String? {
         return try {
             assets.open("prompts/$filename").bufferedReader().use { it.readText() }
         } catch (e: java.io.IOException) {
             Log.e(TAG, "Error loading prompt: $filename", e)
-            getString(R.string.error_loading_prompt)
+            Toast.makeText(this, R.string.error_loading_prompt, Toast.LENGTH_SHORT).show()
+            null
         }
     }
 
