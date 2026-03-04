@@ -31,8 +31,7 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="24dp"
                 android:paddingTop="?attr/actionBarSize"
-                android:paddingBottom="16dp"
-                app:layout_collapseMode="parallax">
+                android:paddingBottom="16dp">
 
                 <TextView
                     android:id="@+id/detailTitle"

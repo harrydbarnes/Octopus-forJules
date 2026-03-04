@@ -343,7 +343,11 @@ class TaskDetailActivity : BaseActivity() {
         synchronized(allLogs) {
             // Append new logs avoiding duplicates
             val existingIds = allLogs.mapNotNull { it.id }.toSet()
-            val uniqueNewLogs = newLogs.filter { it.id == null || !existingIds.contains(it.id) }
+            val uniqueNewLogs = newLogs.filter { log ->
+                val desc = log.getResolvedDescription()
+                val isNoDetails = desc?.trim() == "No details"
+                (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
+            }
 
             if (uniqueNewLogs.isNotEmpty()) {
                 if (prepend) {
@@ -363,6 +367,7 @@ class TaskDetailActivity : BaseActivity() {
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
             val typeText: TextView = view.findViewById(R.id.logType)
+            val typeIcon: android.widget.ImageView = view.findViewById(R.id.logTypeIcon)
             val progress: View = view.findViewById(R.id.logProgress)
             val descText: TextView = view.findViewById(R.id.logDescription)
             val timeText: TextView = view.findViewById(R.id.logTimestamp)
@@ -376,9 +381,17 @@ class TaskDetailActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
             val log = getItem(position)
-            val type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
-            val fullDescription = log.getResolvedDescription() ?: ""
+            var type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
+            var fullDescription = log.getResolvedDescription() ?: ""
             val logId = log.id ?: position.toString()
+
+            // Filter out internal rating text
+            fullDescription = fullDescription.replace("### Final Rating: #Correct#", "").trim()
+
+            // Detect Code Review
+            if (fullDescription.contains("**Analysis and Reasoning:**")) {
+                type = "CODE REVIEW"
+            }
 
             holder.typeText.text = type
             // Utilise the new chat timestamp format
@@ -389,7 +402,7 @@ class TaskDetailActivity : BaseActivity() {
             var showToggleButton = false
 
             // Distinctive styling for Code Updates vs generic Chat
-            if (type.contains("CODE") || type.contains("FILE") || type.contains("COMMITTING")) {
+            if (type.contains("CODE") && !type.contains("REVIEW") || type.contains("FILE") || type.contains("COMMITTING")) {
                 holder.cardView.setCardBackgroundColor(holder.itemView.context.getColor(R.color.jules_purple_light))
                 holder.descText.typeface = android.graphics.Typeface.MONOSPACE
             } else {
@@ -400,15 +413,19 @@ class TaskDetailActivity : BaseActivity() {
                 holder.descText.typeface = android.graphics.Typeface.DEFAULT
             }
 
+            holder.typeIcon.visibility = if (type == "CODE REVIEW") View.VISIBLE else View.GONE
+
             // Collapse Logic for Reviews
             if (type.contains("REVIEW")) {
                 if (!isExpanded) {
                     displayDescription = "Review details hidden."
                     showToggleButton = true
                     holder.btnToggleExpand.text = "Expand Review"
+                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
                 } else {
                     showToggleButton = true
                     holder.btnToggleExpand.text = "Collapse Review"
+                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
                 }
             }
 
@@ -419,13 +436,15 @@ class TaskDetailActivity : BaseActivity() {
                     displayDescription = lines.take(3).joinToString("\n") + "\n..."
                     showToggleButton = true
                     holder.btnToggleExpand.text = "Show Full Plan"
+                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
                 } else if (lines.size > 3) {
                     showToggleButton = true
                     holder.btnToggleExpand.text = "Show Less"
+                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
                 }
             }
 
-            holder.descText.text = displayDescription
+            holder.descText.text = applyMarkdownBold(displayDescription)
             holder.progress.visibility = if (TaskDetailActivity.WORKING_TYPES.contains(type)) View.VISIBLE else View.GONE
 
             if (showToggleButton) {
@@ -442,6 +461,29 @@ class TaskDetailActivity : BaseActivity() {
                 holder.btnToggleExpand.visibility = View.GONE
                 holder.btnToggleExpand.setOnClickListener(null)
             }
+        }
+
+        private fun applyMarkdownBold(text: String): CharSequence {
+            val spannableString = android.text.SpannableStringBuilder()
+            var currentIndex = 0
+            val regex = Regex("\\*\\*(.*?)\\*\\*")
+            val matches = regex.findAll(text)
+
+            for (match in matches) {
+                spannableString.append(text.substring(currentIndex, match.range.first))
+                val boldText = match.groupValues[1]
+                val start = spannableString.length
+                spannableString.append(boldText)
+                spannableString.setSpan(
+                    android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    start,
+                    spannableString.length,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                currentIndex = match.range.last + 1
+            }
+            spannableString.append(text.substring(currentIndex))
+            return spannableString
         }
 
         class LogDiffCallback : DiffUtil.ItemCallback<ActivityLog>() {
