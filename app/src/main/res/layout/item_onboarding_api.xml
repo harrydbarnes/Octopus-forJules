@@ -1,66 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp">
+    android:fillViewport="true">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/welcome_message"
-        android:textAppearance="?attr/textAppearanceHeadlineSmall"
-        android:textColor="?attr/colorOnSurface"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="32dp" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/apiKeyInputLayout"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/api_key_hint"
-        app:endIconMode="custom"
-        app:endIconDrawable="@drawable/ic_content_paste"
-        app:endIconContentDescription="@string/paste_api_key">
+        android:padding="24dp">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/apiKeyInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textVisiblePassword" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <TextView
-        android:id="@+id/getKeyLink"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/get_api_key"
-        android:layout_marginTop="8dp"
-        android:textColor="?attr/colorOnSurface"
-        android:layout_gravity="end"
-        android:clickable="true"
-        android:focusable="true" />
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp">
-
-        <Button
-            android:id="@+id/saveButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/save_continue" />
-
-        <ProgressBar
-            android:id="@+id/progressBar"
+        <TextView
+            android:id="@+id/welcomeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"/>
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp"
+            android:text="@string/welcome_message"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSurface"
+            app:layout_constraintBottom_toTopOf="@+id/cardView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed" />
 
-    </FrameLayout>
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardView"
+            style="@style/Widget.Material3.CardView.Elevated"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:layout_constraintBottom_toTopOf="@+id/buttonContainer"
+            app:layout_constraintTop_toBottomOf="@id/welcomeTextView">
 
-</LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/apiKeyInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/api_key_hint"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_content_paste"
+                    app:endIconContentDescription="@string/paste_api_key">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/apiKeyInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textVisiblePassword" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/getKeyLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/get_api_key"
+                    android:layout_marginTop="8dp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_gravity="end"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <FrameLayout
+            android:id="@+id/buttonContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cardView"
+            app:layout_constraintVertical_bias="1.0">
+
+            <Button
+                android:id="@+id/saveButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/save_continue" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone"/>
+
+        </FrameLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
