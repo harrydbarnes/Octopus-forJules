@@ -355,7 +355,8 @@ class TaskDetailActivity : BaseActivity() {
                 } else {
                     allLogs.addAll(uniqueNewLogs)
                 }
-                logAdapter.submitList(ArrayList(allLogs))
+                val sortedLogs = allLogs.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
+                logAdapter.submitList(ArrayList(sortedLogs))
             }
         }
     }
@@ -368,10 +369,12 @@ class TaskDetailActivity : BaseActivity() {
             val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
             val typeText: TextView = view.findViewById(R.id.logType)
             val typeIcon: android.widget.ImageView = view.findViewById(R.id.logTypeIcon)
+            val typeIconEnd: android.widget.ImageView = view.findViewById(R.id.logTypeIconEnd)
             val progress: View = view.findViewById(R.id.logProgress)
             val descText: TextView = view.findViewById(R.id.logDescription)
             val timeText: TextView = view.findViewById(R.id.logTimestamp)
             val btnToggleExpand: com.google.android.material.button.MaterialButton = view.findViewById(R.id.btnToggleExpand)
+            val planStepsRecyclerView: RecyclerView = view.findViewById(R.id.planStepsRecyclerView)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LogViewHolder {
@@ -393,6 +396,13 @@ class TaskDetailActivity : BaseActivity() {
                 type = "CODE REVIEW"
             }
 
+            if (fullDescription.contains("All plan steps have been successfully completed. Ready for submission.")) {
+                type = "ALL PLAN STEPS COMPLETED"
+            }
+            if (fullDescription.contains("Ran tests and compiled successfully.")) {
+                type = "COMPILED CORRECTLY"
+            }
+
             holder.typeText.text = type
             // Utilise the new chat timestamp format
             holder.timeText.text = com.jules.loader.util.DateUtils.formatChatTimestamp(log.timestamp) ?: log.timestamp ?: ""
@@ -400,6 +410,14 @@ class TaskDetailActivity : BaseActivity() {
             val isExpanded = expandedItems.contains(logId)
             var displayDescription = fullDescription
             var showToggleButton = false
+
+            // Handle Plan Approved
+            if (type == "PLAN APPROVED") {
+                displayDescription = ""
+                holder.typeIconEnd.visibility = View.VISIBLE
+            } else {
+                holder.typeIconEnd.visibility = View.GONE
+            }
 
             // Distinctive styling for Code Updates vs generic Chat
             if (type.contains("CODE") && !type.contains("REVIEW") || type.contains("FILE") || type.contains("COMMITTING")) {
@@ -418,7 +436,7 @@ class TaskDetailActivity : BaseActivity() {
             // Collapse Logic for Reviews
             if (type.contains("REVIEW")) {
                 if (!isExpanded) {
-                    displayDescription = "Review details hidden."
+                    displayDescription = ""
                     showToggleButton = true
                     holder.btnToggleExpand.text = "Expand Review"
                     holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
@@ -430,18 +448,40 @@ class TaskDetailActivity : BaseActivity() {
             }
 
             // Collapse Logic for Plans (show up to 3 list items)
-            else if (type.contains("PLAN")) {
-                val lines = fullDescription.split("\n")
-                if (lines.size > 3 && !isExpanded) {
-                    displayDescription = lines.take(3).joinToString("\n") + "\n..."
-                    showToggleButton = true
-                    holder.btnToggleExpand.text = "Show Full Plan"
-                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
-                } else if (lines.size > 3) {
-                    showToggleButton = true
-                    holder.btnToggleExpand.text = "Show Less"
-                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
+            else if (type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED") {
+                val regex = Regex("(?s)(\\d+)\\.\\s*(.*?)(?=\\n\\d+\\.|$)")
+                val parsedSteps = regex.findAll(fullDescription).map { it.groupValues[1] to it.groupValues[2].trim() }.toList()
+
+                if (parsedSteps.isNotEmpty()) {
+                    holder.descText.visibility = View.GONE
+                    holder.planStepsRecyclerView.visibility = View.VISIBLE
+                    holder.planStepsRecyclerView.layoutManager = LinearLayoutManager(holder.itemView.context)
+
+                    if (holder.planStepsRecyclerView.itemDecorationCount == 0) {
+                        val divider = androidx.recyclerview.widget.DividerItemDecoration(holder.itemView.context, androidx.recyclerview.widget.DividerItemDecoration.VERTICAL)
+                        holder.planStepsRecyclerView.addItemDecoration(divider)
+                    }
+
+                    if (!isExpanded && parsedSteps.size > 3) {
+                        holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps.take(3))
+                        showToggleButton = true
+                        holder.btnToggleExpand.text = "Show Full Plan"
+                        holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
+                    } else {
+                        holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps)
+                        if (parsedSteps.size > 3) {
+                            showToggleButton = true
+                            holder.btnToggleExpand.text = "Show Less"
+                            holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
+                        }
+                    }
+                } else {
+                    holder.descText.visibility = View.VISIBLE
+                    holder.planStepsRecyclerView.visibility = View.GONE
                 }
+            } else {
+                holder.descText.visibility = View.VISIBLE
+                holder.planStepsRecyclerView.visibility = View.GONE
             }
 
             holder.descText.text = applyMarkdownBold(displayDescription)
@@ -484,6 +524,26 @@ class TaskDetailActivity : BaseActivity() {
             }
             spannableString.append(text.substring(currentIndex))
             return spannableString
+        }
+
+        class PlanStepAdapter(private val steps: List<Pair<String, String>>) : RecyclerView.Adapter<PlanStepAdapter.PlanStepViewHolder>() {
+            class PlanStepViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+                val number: TextView = view.findViewById(R.id.planStepNumber)
+                val text: TextView = view.findViewById(R.id.planStepText)
+            }
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlanStepViewHolder {
+                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_plan_step, parent, false)
+                return PlanStepViewHolder(view)
+            }
+
+            override fun onBindViewHolder(holder: PlanStepViewHolder, position: Int) {
+                val step = steps[position]
+                holder.number.text = step.first
+                holder.text.text = step.second
+            }
+
+            override fun getItemCount() = steps.size
         }
 
         class LogDiffCallback : DiffUtil.ItemCallback<ActivityLog>() {

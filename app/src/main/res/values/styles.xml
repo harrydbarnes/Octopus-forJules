@@ -16,4 +16,15 @@
     <style name="TextAppearance.Jules.Toolbar" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:textStyle">bold</item>
     </style>
+
+    <style name="ShapeAppearance.Jules.LargeComponent.BottomRounded" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamilyBottomLeft">rounded</item>
+        <item name="cornerSizeBottomLeft">24dp</item>
+        <item name="cornerFamilyBottomRight">rounded</item>
+        <item name="cornerSizeBottomRight">24dp</item>
+        <item name="cornerFamilyTopLeft">rounded</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerFamilyTopRight">rounded</item>
+        <item name="cornerSizeTopRight">0dp</item>
+    </style>
 </resources>
