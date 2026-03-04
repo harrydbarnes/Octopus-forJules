@@ -58,6 +58,12 @@ object DateUtils {
         return null
     }
 
+    fun formatChatTimestamp(dateString: String?): String? {
+        val date = parseDate(dateString) ?: return null
+        val formatter = getDisplayFormatter("d MMM - HH:mm")
+        return formatter.format(date)
+    }
+
     fun formatDate(dateString: String?): String? {
         val date = parseDate(dateString) ?: return null
         val dayFormatter = getDisplayFormatter("d")

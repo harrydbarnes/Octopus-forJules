@@ -81,10 +81,6 @@ class TaskDetailActivity : BaseActivity() {
 
         populateSessionDetails()
 
-        // Setup Log Bottom Sheet
-        val behavior = BottomSheetBehavior.from(binding.logBottomSheet)
-        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-
         // Setup Log RecyclerView
         binding.logRecyclerView.layoutManager = LinearLayoutManager(this)
         logAdapter = LogAdapter()
@@ -361,11 +357,16 @@ class TaskDetailActivity : BaseActivity() {
     }
 
     class LogAdapter : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
+
+        private val expandedItems = mutableSetOf<String>()
+
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
             val typeText: TextView = view.findViewById(R.id.logType)
             val progress: View = view.findViewById(R.id.logProgress)
             val descText: TextView = view.findViewById(R.id.logDescription)
             val timeText: TextView = view.findViewById(R.id.logTimestamp)
+            val btnToggleExpand: com.google.android.material.button.MaterialButton = view.findViewById(R.id.btnToggleExpand)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LogViewHolder {
@@ -375,21 +376,71 @@ class TaskDetailActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
             val log = getItem(position)
-            val type = log.getResolvedType()
+            val type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
+            val fullDescription = log.getResolvedDescription() ?: ""
+            val logId = log.id ?: position.toString()
+
             holder.typeText.text = type
-            holder.descText.text = log.getResolvedDescription()
-            holder.timeText.text = log.timestamp ?: ""
+            // Utilise the new chat timestamp format
+            holder.timeText.text = com.jules.loader.util.DateUtils.formatChatTimestamp(log.timestamp) ?: log.timestamp ?: ""
 
-            if (TaskDetailActivity.WORKING_TYPES.contains(type.uppercase(java.util.Locale.ROOT))) {
-                holder.progress.visibility = View.VISIBLE
-            } else {
-                holder.progress.visibility = View.GONE
-            }
+            val isExpanded = expandedItems.contains(logId)
+            var displayDescription = fullDescription
+            var showToggleButton = false
 
-            if (type.contains("CODE") || type.contains("FILE") || holder.descText.text.contains("```")) {
+            // Distinctive styling for Code Updates vs generic Chat
+            if (type.contains("CODE") || type.contains("FILE") || type.contains("COMMITTING")) {
+                holder.cardView.setCardBackgroundColor(holder.itemView.context.getColor(R.color.jules_purple_light))
                 holder.descText.typeface = android.graphics.Typeface.MONOSPACE
             } else {
+                // Determine attribute colour programmeatically or standard fallback
+                val typedValue = android.util.TypedValue()
+                holder.itemView.context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainer, typedValue, true)
+                holder.cardView.setCardBackgroundColor(typedValue.data)
                 holder.descText.typeface = android.graphics.Typeface.DEFAULT
+            }
+
+            // Collapse Logic for Reviews
+            if (type.contains("REVIEW")) {
+                if (!isExpanded) {
+                    displayDescription = "Review details hidden."
+                    showToggleButton = true
+                    holder.btnToggleExpand.text = "Expand Review"
+                } else {
+                    showToggleButton = true
+                    holder.btnToggleExpand.text = "Collapse Review"
+                }
+            }
+
+            // Collapse Logic for Plans (show up to 3 list items)
+            else if (type.contains("PLAN")) {
+                val lines = fullDescription.split("\n")
+                if (lines.size > 3 && !isExpanded) {
+                    displayDescription = lines.take(3).joinToString("\n") + "\n..."
+                    showToggleButton = true
+                    holder.btnToggleExpand.text = "Show Full Plan"
+                } else if (lines.size > 3) {
+                    showToggleButton = true
+                    holder.btnToggleExpand.text = "Show Less"
+                }
+            }
+
+            holder.descText.text = displayDescription
+            holder.progress.visibility = if (TaskDetailActivity.WORKING_TYPES.contains(type)) View.VISIBLE else View.GONE
+
+            if (showToggleButton) {
+                holder.btnToggleExpand.visibility = View.VISIBLE
+                holder.btnToggleExpand.setOnClickListener {
+                    if (isExpanded) {
+                        expandedItems.remove(logId)
+                    } else {
+                        expandedItems.add(logId)
+                    }
+                    notifyItemChanged(position)
+                }
+            } else {
+                holder.btnToggleExpand.visibility = View.GONE
+                holder.btnToggleExpand.setOnClickListener(null)
             }
         }
 
