@@ -414,8 +414,10 @@ class TaskDetailActivity : BaseActivity() {
             // Handle Plan Approved
             if (type == "PLAN APPROVED") {
                 displayDescription = ""
+                holder.descText.visibility = View.GONE
                 holder.typeIconEnd.visibility = View.VISIBLE
             } else {
+                holder.descText.visibility = View.VISIBLE
                 holder.typeIconEnd.visibility = View.GONE
             }
 
@@ -448,11 +450,16 @@ class TaskDetailActivity : BaseActivity() {
             }
 
             // Collapse Logic for Plans (show up to 3 list items)
-            else if (type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED") {
-                val regex = Regex("(?s)(\\d+)\\.\\s*(.*?)(?=\\n\\d+\\.|$)")
-                val parsedSteps = regex.findAll(fullDescription).map { it.groupValues[1] to it.groupValues[2].trim() }.toList()
+            else if (type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED" && type != "PLAN APPROVED") {
+                // Split by numbered list pattern or dash/asterisk pattern at start of a line
+                val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
+                val matches = regex.findAll(fullDescription).toList()
 
-                if (parsedSteps.isNotEmpty()) {
+                if (matches.isNotEmpty()) {
+                    val parsedSteps = matches.mapIndexed { index, matchResult ->
+                        (index + 1).toString() to matchResult.groupValues[1].trim()
+                    }
+
                     holder.descText.visibility = View.GONE
                     holder.planStepsRecyclerView.visibility = View.VISIBLE
                     holder.planStepsRecyclerView.layoutManager = LinearLayoutManager(holder.itemView.context)
@@ -476,11 +483,9 @@ class TaskDetailActivity : BaseActivity() {
                         }
                     }
                 } else {
-                    holder.descText.visibility = View.VISIBLE
                     holder.planStepsRecyclerView.visibility = View.GONE
                 }
             } else {
-                holder.descText.visibility = View.VISIBLE
                 holder.planStepsRecyclerView.visibility = View.GONE
             }
 
