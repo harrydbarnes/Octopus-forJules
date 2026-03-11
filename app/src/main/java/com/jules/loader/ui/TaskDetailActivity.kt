@@ -50,6 +50,11 @@ class TaskDetailActivity : BaseActivity() {
         const val STATUS_EXECUTING_TESTS = "Executing Tests"
         private const val POLLING_INTERVAL_MS = 3000L
 
+        const val CONST_REVIEW_MARKER = "**Analysis and Reasoning:**"
+        const val CONST_PLAN_COMPLETED_MARKER = "All plan steps have been successfully completed. Ready for submission."
+        const val CONST_COMPILED_CORRECTLY_MARKER = "Ran tests and compiled successfully."
+        const val CONST_RATING_MARKER = "### Final Rating: #Correct#"
+
         val WORKING_TYPES = setOf("WORKING", "COMMITTING_CODE", "EXECUTING TESTS", "RUNNING TESTS")
         val TERMINAL_STATES = setOf("COMPLETED", "FAILED", "CANCELLED", "TERMINATED")
     }
@@ -298,7 +303,7 @@ class TaskDetailActivity : BaseActivity() {
 
                     if (!isLoadingMore) {
                         val response = repository.getActivities(id, pageToken = null)
-                        addLogs(response.activities ?: emptyList(), prepend = false)
+                        addLogs(response.activities ?: emptyList())
 
                         // Only set the initial token for backward pagination
                         if (nextPageToken == null) {
@@ -330,7 +335,7 @@ class TaskDetailActivity : BaseActivity() {
                 lastLoadedPageToken = token
                 nextPageToken = response.nextPageToken
 
-                addLogs(response.activities ?: emptyList(), prepend = true)
+                addLogs(response.activities ?: emptyList())
             } catch (e: Exception) {
                 android.util.Log.e("TaskDetailActivity", "Error loading more logs", e)
             } finally {
@@ -339,7 +344,7 @@ class TaskDetailActivity : BaseActivity() {
         }
     }
 
-    private fun addLogs(newLogs: List<ActivityLog>, prepend: Boolean) {
+    private fun addLogs(newLogs: List<ActivityLog>) {
         val snapshot: List<ActivityLog>
         synchronized(allLogs) {
             // Append new logs avoiding duplicates
@@ -351,11 +356,7 @@ class TaskDetailActivity : BaseActivity() {
             }
 
             if (uniqueNewLogs.isNotEmpty()) {
-                if (prepend) {
-                    allLogs.addAll(0, uniqueNewLogs)
-                } else {
-                    allLogs.addAll(uniqueNewLogs)
-                }
+                allLogs.addAll(uniqueNewLogs)
             }
             snapshot = ArrayList(allLogs)
         }
@@ -409,18 +410,22 @@ class TaskDetailActivity : BaseActivity() {
             holder.planStepsRecyclerView.visibility = View.GONE
             holder.typeIconEnd.visibility = View.GONE
 
-            if (type == "PLAN APPROVED") {
-                displayDescription = ""
-                holder.descText.visibility = View.GONE
-                holder.typeIconEnd.visibility = View.VISIBLE
-            } else if (type.contains("REVIEW")) {
-                val reviewData = bindReviewData(holder, isExpanded, fullDescription)
-                displayDescription = reviewData.first
-                showToggleButton = reviewData.second
-            } else if (type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED") {
-                showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
-                if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
-                    displayDescription = "" // Handled by RecyclerView
+            when {
+                type == "PLAN APPROVED" -> {
+                    displayDescription = ""
+                    holder.descText.visibility = View.GONE
+                    holder.typeIconEnd.visibility = View.VISIBLE
+                }
+                type.contains("REVIEW") -> {
+                    val reviewData = bindReviewData(holder, isExpanded, fullDescription)
+                    displayDescription = reviewData.first
+                    showToggleButton = reviewData.second
+                }
+                type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED" -> {
+                    showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
+                    if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
+                        displayDescription = "" // Handled by RecyclerView
+                    }
                 }
             }
 
@@ -432,22 +437,24 @@ class TaskDetailActivity : BaseActivity() {
             var type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
             var fullDescription = log.getResolvedDescription() ?: ""
 
-            fullDescription = fullDescription.replace("### Final Rating: #Correct#", "").trim()
+            fullDescription = fullDescription.replace(CONST_RATING_MARKER, "").trim()
 
-            if (fullDescription.contains("**Analysis and Reasoning:**")) {
-                type = "CODE REVIEW"
-            }
-            if (fullDescription.contains("All plan steps have been successfully completed. Ready for submission.")) {
-                type = "ALL PLAN STEPS COMPLETED"
-            }
-            if (fullDescription.contains("Ran tests and compiled successfully.")) {
-                type = "COMPILED CORRECTLY"
+            when {
+                fullDescription.contains(CONST_REVIEW_MARKER) -> type = "CODE REVIEW"
+                fullDescription.contains(CONST_PLAN_COMPLETED_MARKER) -> type = "ALL PLAN STEPS COMPLETED"
+                fullDescription.contains(CONST_COMPILED_CORRECTLY_MARKER) -> type = "COMPILED CORRECTLY"
             }
             return Pair(type, fullDescription)
         }
 
+        private fun isCodeTypeLog(type: String): Boolean {
+            return (type.contains("CODE") && !type.contains("REVIEW")) ||
+                   type.contains("FILE") ||
+                   type.contains("COMMITTING")
+        }
+
         private fun applyCardStyling(holder: LogViewHolder, type: String) {
-            if (type.contains("CODE") && !type.contains("REVIEW") || type.contains("FILE") || type.contains("COMMITTING")) {
+            if (isCodeTypeLog(type)) {
                 holder.cardView.setCardBackgroundColor(holder.itemView.context.getColor(R.color.jules_purple_light))
                 holder.descText.typeface = android.graphics.Typeface.MONOSPACE
             } else {
@@ -491,19 +498,20 @@ class TaskDetailActivity : BaseActivity() {
                     holder.planStepsRecyclerView.addItemDecoration(divider)
                 }
 
-                if (!isExpanded && parsedSteps.size > 3) {
+                val needsToggle = parsedSteps.size > 3
+
+                if (needsToggle && !isExpanded) {
                     holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps.take(3))
                     holder.btnToggleExpand.text = "Show Full Plan"
                     holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
-                    return true
                 } else {
                     holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps)
-                    if (parsedSteps.size > 3) {
+                    if (needsToggle) {
                         holder.btnToggleExpand.text = "Show Less"
                         holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
-                        return true
                     }
                 }
+                return needsToggle
             }
             return false
         }
