@@ -38,8 +38,10 @@ class TaskDetailActivity : BaseActivity() {
     private var isLoadingMore = false
     private val allLogs = java.util.Collections.synchronizedList(java.util.ArrayList<ActivityLog>())
     private var currentPrUrl: String? = null
+    private var expandedItems = mutableSetOf<String>()
 
     companion object {
+        private const val KEY_EXPANDED_ITEMS = "KEY_EXPANDED_ITEMS"
         const val EXTRA_SESSION_ID = "EXTRA_SESSION_ID"
         const val EXTRA_SESSION_TITLE = "EXTRA_SESSION_TITLE"
         const val EXTRA_SESSION_PROMPT = "EXTRA_SESSION_PROMPT"
@@ -86,9 +88,22 @@ class TaskDetailActivity : BaseActivity() {
 
         populateSessionDetails()
 
+        if (savedInstanceState != null) {
+            val savedItems = savedInstanceState.getStringArrayList(KEY_EXPANDED_ITEMS)
+            if (savedItems != null) {
+                expandedItems.addAll(savedItems)
+            }
+        }
+
         // Setup Log RecyclerView
         binding.logRecyclerView.layoutManager = LinearLayoutManager(this)
-        logAdapter = LogAdapter()
+        logAdapter = LogAdapter(expandedItems) { logId, isExpanded ->
+            if (isExpanded) {
+                expandedItems.add(logId)
+            } else {
+                expandedItems.remove(logId)
+            }
+        }
         binding.logRecyclerView.adapter = logAdapter
 
         binding.logRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -203,6 +218,11 @@ class TaskDetailActivity : BaseActivity() {
                 }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putStringArrayList(KEY_EXPANDED_ITEMS, ArrayList(expandedItems))
     }
 
     override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
@@ -368,9 +388,10 @@ class TaskDetailActivity : BaseActivity() {
         }
     }
 
-    class LogAdapter : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
-
-        private val expandedItems = mutableSetOf<String>()
+    class LogAdapter(
+        private val expandedItems: Set<String>,
+        private val onToggleExpand: (String, Boolean) -> Unit
+    ) : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
 
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
@@ -520,11 +541,8 @@ class TaskDetailActivity : BaseActivity() {
             if (showToggleButton && logId != null) {
                 holder.btnToggleExpand.visibility = View.VISIBLE
                 holder.btnToggleExpand.setOnClickListener {
-                    if (expandedItems.contains(logId)) {
-                        expandedItems.remove(logId)
-                    } else {
-                        expandedItems.add(logId)
-                    }
+                    val currentlyExpanded = expandedItems.contains(logId)
+                    onToggleExpand(logId, !currentlyExpanded)
                     notifyItemChanged(position)
                 }
             } else {
