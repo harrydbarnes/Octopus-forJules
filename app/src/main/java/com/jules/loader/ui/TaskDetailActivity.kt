@@ -340,6 +340,7 @@ class TaskDetailActivity : BaseActivity() {
     }
 
     private fun addLogs(newLogs: List<ActivityLog>, prepend: Boolean) {
+        val snapshot: List<ActivityLog>
         synchronized(allLogs) {
             // Append new logs avoiding duplicates
             val existingIds = allLogs.mapNotNull { it.id }.toSet()
@@ -355,9 +356,14 @@ class TaskDetailActivity : BaseActivity() {
                 } else {
                     allLogs.addAll(uniqueNewLogs)
                 }
-                val sortedLogs = allLogs.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-                logAdapter.submitList(ArrayList(sortedLogs))
             }
+            snapshot = ArrayList(allLogs)
+        }
+
+        // Perform sorting and adapter submission outside the synchronized block to reduce contention
+        if (snapshot.isNotEmpty()) {
+            val sortedLogs = snapshot.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
+            logAdapter.submitList(sortedLogs)
         }
     }
 
@@ -384,118 +390,129 @@ class TaskDetailActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
             val log = getItem(position)
+            val logId = log.name ?: log.id
+            val isExpanded = logId != null && expandedItems.contains(logId)
+
+            val (type, fullDescription) = resolveTypeAndDescription(log)
+
+            holder.typeText.text = type
+            holder.timeText.text = com.jules.loader.util.DateUtils.formatChatTimestamp(log.timestamp) ?: log.timestamp ?: ""
+            holder.progress.visibility = if (TaskDetailActivity.WORKING_TYPES.contains(type)) View.VISIBLE else View.GONE
+
+            applyCardStyling(holder, type)
+
+            var displayDescription = fullDescription
+            var showToggleButton = false
+
+            // Default visibility states
+            holder.descText.visibility = View.VISIBLE
+            holder.planStepsRecyclerView.visibility = View.GONE
+            holder.typeIconEnd.visibility = View.GONE
+
+            if (type == "PLAN APPROVED") {
+                displayDescription = ""
+                holder.descText.visibility = View.GONE
+                holder.typeIconEnd.visibility = View.VISIBLE
+            } else if (type.contains("REVIEW")) {
+                val reviewData = bindReviewData(holder, isExpanded, fullDescription)
+                displayDescription = reviewData.first
+                showToggleButton = reviewData.second
+            } else if (type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED") {
+                showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
+                if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
+                    displayDescription = "" // Handled by RecyclerView
+                }
+            }
+
+            holder.descText.text = applyMarkdownBold(displayDescription)
+            setupToggleButton(holder, showToggleButton, logId, position)
+        }
+
+        private fun resolveTypeAndDescription(log: ActivityLog): Pair<String, String> {
             var type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
             var fullDescription = log.getResolvedDescription() ?: ""
-            val logId = log.id ?: position.toString()
 
-            // Filter out internal rating text
             fullDescription = fullDescription.replace("### Final Rating: #Correct#", "").trim()
 
-            // Detect Code Review
             if (fullDescription.contains("**Analysis and Reasoning:**")) {
                 type = "CODE REVIEW"
             }
-
             if (fullDescription.contains("All plan steps have been successfully completed. Ready for submission.")) {
                 type = "ALL PLAN STEPS COMPLETED"
             }
             if (fullDescription.contains("Ran tests and compiled successfully.")) {
                 type = "COMPILED CORRECTLY"
             }
+            return Pair(type, fullDescription)
+        }
 
-            holder.typeText.text = type
-            // Utilise the new chat timestamp format
-            holder.timeText.text = com.jules.loader.util.DateUtils.formatChatTimestamp(log.timestamp) ?: log.timestamp ?: ""
-
-            val isExpanded = expandedItems.contains(logId)
-            var displayDescription = fullDescription
-            var showToggleButton = false
-
-            // Handle Plan Approved
-            if (type == "PLAN APPROVED") {
-                displayDescription = ""
-                holder.descText.visibility = View.GONE
-                holder.typeIconEnd.visibility = View.VISIBLE
-            } else {
-                holder.descText.visibility = View.VISIBLE
-                holder.typeIconEnd.visibility = View.GONE
-            }
-
-            // Distinctive styling for Code Updates vs generic Chat
+        private fun applyCardStyling(holder: LogViewHolder, type: String) {
             if (type.contains("CODE") && !type.contains("REVIEW") || type.contains("FILE") || type.contains("COMMITTING")) {
                 holder.cardView.setCardBackgroundColor(holder.itemView.context.getColor(R.color.jules_purple_light))
                 holder.descText.typeface = android.graphics.Typeface.MONOSPACE
             } else {
-                // Determine attribute colour programmeatically or standard fallback
                 val typedValue = android.util.TypedValue()
                 holder.itemView.context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainer, typedValue, true)
                 holder.cardView.setCardBackgroundColor(typedValue.data)
                 holder.descText.typeface = android.graphics.Typeface.DEFAULT
             }
-
             holder.typeIcon.visibility = if (type == "CODE REVIEW") View.VISIBLE else View.GONE
+        }
 
-            // Collapse Logic for Reviews
-            if (type.contains("REVIEW")) {
-                if (!isExpanded) {
-                    displayDescription = ""
-                    showToggleButton = true
-                    holder.btnToggleExpand.text = "Expand Review"
-                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
-                } else {
-                    showToggleButton = true
-                    holder.btnToggleExpand.text = "Collapse Review"
-                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
-                }
-            }
-
-            // Collapse Logic for Plans (show up to 3 list items)
-            else if (type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED" && type != "PLAN APPROVED") {
-                // Split by numbered list pattern or dash/asterisk pattern at start of a line
-                val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
-                val matches = regex.findAll(fullDescription).toList()
-
-                if (matches.isNotEmpty()) {
-                    val parsedSteps = matches.mapIndexed { index, matchResult ->
-                        (index + 1).toString() to matchResult.groupValues[1].trim()
-                    }
-
-                    holder.descText.visibility = View.GONE
-                    holder.planStepsRecyclerView.visibility = View.VISIBLE
-                    holder.planStepsRecyclerView.layoutManager = LinearLayoutManager(holder.itemView.context)
-
-                    if (holder.planStepsRecyclerView.itemDecorationCount == 0) {
-                        val divider = androidx.recyclerview.widget.DividerItemDecoration(holder.itemView.context, androidx.recyclerview.widget.DividerItemDecoration.VERTICAL)
-                        holder.planStepsRecyclerView.addItemDecoration(divider)
-                    }
-
-                    if (!isExpanded && parsedSteps.size > 3) {
-                        holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps.take(3))
-                        showToggleButton = true
-                        holder.btnToggleExpand.text = "Show Full Plan"
-                        holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
-                    } else {
-                        holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps)
-                        if (parsedSteps.size > 3) {
-                            showToggleButton = true
-                            holder.btnToggleExpand.text = "Show Less"
-                            holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
-                        }
-                    }
-                } else {
-                    holder.planStepsRecyclerView.visibility = View.GONE
-                }
+        private fun bindReviewData(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String): Pair<String, Boolean> {
+            var displayDescription = ""
+            val showToggleButton = true
+            if (!isExpanded) {
+                holder.btnToggleExpand.text = "Expand Review"
+                holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
             } else {
-                holder.planStepsRecyclerView.visibility = View.GONE
+                displayDescription = fullDescription
+                holder.btnToggleExpand.text = "Collapse Review"
+                holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
             }
+            return Pair(displayDescription, showToggleButton)
+        }
 
-            holder.descText.text = applyMarkdownBold(displayDescription)
-            holder.progress.visibility = if (TaskDetailActivity.WORKING_TYPES.contains(type)) View.VISIBLE else View.GONE
+        private fun bindPlanData(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean): Boolean {
+            val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
+            val matches = regex.findAll(fullDescription).toList()
 
-            if (showToggleButton) {
+            if (matches.isNotEmpty()) {
+                val parsedSteps = matches.mapIndexed { index, matchResult ->
+                    (index + 1).toString() to matchResult.groupValues[1].trim()
+                }
+
+                holder.descText.visibility = View.GONE
+                holder.planStepsRecyclerView.visibility = View.VISIBLE
+                holder.planStepsRecyclerView.layoutManager = LinearLayoutManager(holder.itemView.context)
+
+                if (holder.planStepsRecyclerView.itemDecorationCount == 0) {
+                    val divider = androidx.recyclerview.widget.DividerItemDecoration(holder.itemView.context, androidx.recyclerview.widget.DividerItemDecoration.VERTICAL)
+                    holder.planStepsRecyclerView.addItemDecoration(divider)
+                }
+
+                if (!isExpanded && parsedSteps.size > 3) {
+                    holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps.take(3))
+                    holder.btnToggleExpand.text = "Show Full Plan"
+                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
+                    return true
+                } else {
+                    holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps)
+                    if (parsedSteps.size > 3) {
+                        holder.btnToggleExpand.text = "Show Less"
+                        holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        private fun setupToggleButton(holder: LogViewHolder, showToggleButton: Boolean, logId: String?, position: Int) {
+            if (showToggleButton && logId != null) {
                 holder.btnToggleExpand.visibility = View.VISIBLE
                 holder.btnToggleExpand.setOnClickListener {
-                    if (isExpanded) {
+                    if (expandedItems.contains(logId)) {
                         expandedItems.remove(logId)
                     } else {
                         expandedItems.add(logId)
