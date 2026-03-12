@@ -90,7 +90,7 @@
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceVariant"
                     app:cardElevation="0dp"
-                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Jules.LargeComponent.BottomRounded"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Jules.LargeComponent"
                     app:strokeWidth="0dp">
 
                     <TextView
@@ -119,7 +119,8 @@
         android:id="@+id/logsLoadingIndicator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="16dp"
         android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 

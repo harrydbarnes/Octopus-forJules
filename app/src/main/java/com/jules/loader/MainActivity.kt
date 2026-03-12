@@ -224,6 +224,8 @@ class MainActivity : BaseActivity() {
         val shortenRepoNames = PreferenceUtils.isShortenRepoNamesEnabled(this)
         if (::adapter.isInitialized) {
             adapter.isShortenRepoNamesEnabled = shortenRepoNames
+            adapter.isShortenDatesEnabled = PreferenceUtils.isShortenDatesEnabled(this)
+            adapter.isDateFormatMMDD = PreferenceUtils.isDateFormatMMDD(this)
             adapter.notifyDataSetChanged()
         }
 

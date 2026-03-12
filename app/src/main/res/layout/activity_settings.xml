@@ -63,6 +63,22 @@
                     android:textColor="?attr/colorOnSurface"
                     android:checked="true" />
 
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_shorten_dates"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_shorten_dates"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="true" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_date_format_mmdd"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_date_format_mmdd"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="false" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>

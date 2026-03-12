@@ -60,39 +60,79 @@ class TaskDetailActivity : BaseActivity() {
         const val CONST_RATING_MARKER = "### Final Rating: #Correct#"
         const val TYPE_PLAN_APPROVED = "PLAN APPROVED"
 
+        private const val BULLET_GAP_DEFAULT = 16
+        private const val BULLET_GAP_INDENTED = 48
+        private const val HEADER_SUBITEM_MARGIN = 32
+
         val WORKING_TYPES = setOf("WORKING", "COMMITTING_CODE", "EXECUTING TESTS", "RUNNING TESTS")
         val TERMINAL_STATES = setOf("COMPLETED", "FAILED", "CANCELLED", "TERMINATED")
 
         fun applyMarkdownFormatting(text: String): CharSequence {
             val spannableString = android.text.SpannableStringBuilder()
             val lines = text.split("\n")
+            var afterBoldBullet = false  // after a bold-text line (for indenting plain bullets)
+            var inHeaderSection = false  // after a "header" bold line (ends with just ":")
+
             for ((index, line) in lines.withIndex()) {
                 if (index > 0) spannableString.append("\n")
                 val trimmed = line.trimStart()
+
                 when {
-                    trimmed.startsWith("- ") -> {
-                        // "- text" or "- **bold**" → bullet point
+                    trimmed.isEmpty() -> {
+                        afterBoldBullet = false
+                        inHeaderSection = false
+                    }
+                    trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
+                        val content = trimmed.substring(2)
+                        // Indent more when under a bold bullet or section header
+                        val gapWidth = if (afterBoldBullet || inHeaderSection) BULLET_GAP_INDENTED else BULLET_GAP_DEFAULT
                         val start = spannableString.length
-                        spannableString.append(applyInlineBold(trimmed.substring(2)))
+                        spannableString.append(applyInlineBold(content))
                         spannableString.setSpan(
-                            android.text.style.BulletSpan(16),
+                            android.text.style.BulletSpan(gapWidth),
                             start,
                             spannableString.length,
                             android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                         )
                     }
-                    trimmed.startsWith("* ") -> {
-                        // "* text" or "* **bold**" → bullet point (content may be bold)
-                        val start = spannableString.length
-                        spannableString.append(applyInlineBold(trimmed.substring(2)))
-                        spannableString.setSpan(
-                            android.text.style.BulletSpan(16),
-                            start,
-                            spannableString.length,
-                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
+                    trimmed.startsWith("**") -> {
+                        // Determine what follows the bold text
+                        val closingIdx = trimmed.indexOf("**", 2)
+                        val afterBold = if (closingIdx >= 0) trimmed.substring(closingIdx + 2).trim() else ""
+                        // "header" bold = line is bold text followed only by ":" (section header)
+                        val isHeaderBold = afterBold == ":" || afterBold.isEmpty()
+
+                        when {
+                            isHeaderBold -> {
+                                // Section header: render bold, not indented
+                                spannableString.append(applyInlineBold(trimmed))
+                                inHeaderSection = true
+                                afterBoldBullet = false
+                            }
+                            inHeaderSection -> {
+                                // Sub-item under section header: indent with leading margin
+                                val start = spannableString.length
+                                spannableString.append(applyInlineBold(trimmed))
+                                spannableString.setSpan(
+                                    android.text.style.LeadingMarginSpan.Standard(HEADER_SUBITEM_MARGIN),
+                                    start,
+                                    spannableString.length,
+                                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                                )
+                                afterBoldBullet = true
+                            }
+                            else -> {
+                                // Regular bold line
+                                spannableString.append(applyInlineBold(trimmed))
+                                afterBoldBullet = true
+                                inHeaderSection = false
+                            }
+                        }
                     }
-                    else -> spannableString.append(applyInlineBold(line))
+                    else -> {
+                        spannableString.append(applyInlineBold(line))
+                        afterBoldBullet = false
+                    }
                 }
             }
             return spannableString
@@ -154,6 +194,9 @@ class TaskDetailActivity : BaseActivity() {
                 expandedItems.addAll(savedItems)
             }
         }
+
+        // Show the loading indicator immediately while logs are being fetched for the first time
+        binding.logsLoadingIndicator.visibility = View.VISIBLE
 
         // Setup Log RecyclerView
         binding.logRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -427,9 +470,6 @@ class TaskDetailActivity : BaseActivity() {
                     }
 
                     if (!isLoadingMore) {
-                        if (!initialLoadDone) {
-                            binding.logsLoadingIndicator.visibility = View.VISIBLE
-                        }
                         val response = repository.getActivities(id, pageToken = null)
                         addLogs(response.activities ?: emptyList())
 
@@ -616,7 +656,7 @@ class TaskDetailActivity : BaseActivity() {
             fullDescription = fullDescription.replace(CONST_RATING_MARKER, "").trim()
 
             when {
-                fullDescription.contains(CONST_REVIEW_MARKER) -> type = "CODE REVIEW"
+                fullDescription.contains(CONST_REVIEW_MARKER) || type.contains("REVIEW") -> type = "CODE REVIEW"
                 fullDescription.contains(CONST_PLAN_COMPLETED_MARKER) -> type = "ALL PLAN STEPS COMPLETED"
                 fullDescription.contains(CONST_COMPILED_CORRECTLY_MARKER) -> type = "COMPILED CORRECTLY"
             }

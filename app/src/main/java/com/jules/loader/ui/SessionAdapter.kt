@@ -20,6 +20,8 @@ import androidx.core.app.ActivityOptionsCompat
 class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiffCallback()) {
 
     var isShortenRepoNamesEnabled: Boolean = true
+    var isShortenDatesEnabled: Boolean = true
+    var isDateFormatMMDD: Boolean = false
     private var isLoadingFooterVisible = false
 
     companion object {
@@ -61,7 +63,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is SessionViewHolder) {
-            holder.bind(getItem(position), isShortenRepoNamesEnabled)
+            holder.bind(getItem(position), isShortenRepoNamesEnabled, isShortenDatesEnabled, isDateFormatMMDD)
         }
     }
 
@@ -75,7 +77,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
         private val dateChip: Chip = itemView.findViewById(R.id.dateChip)
         private val pulseView: View = itemView.findViewById(R.id.pulseView)
 
-        fun bind(session: Session, shortenRepoNames: Boolean) {
+        fun bind(session: Session, shortenRepoNames: Boolean, shortenDates: Boolean = true, useMmDd: Boolean = false) {
             val context = itemView.context
             title.text = session.title ?: context.getString(R.string.untitled_session)
             prompt.text = session.prompt ?: context.getString(R.string.no_prompt)
@@ -108,7 +110,11 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
             sourceChip.text = PreferenceUtils.getDisplayRepoName(cleanSource, shortenRepoNames)
 
             // Set date
-            val formattedDate = DateUtils.formatDate(session.createTime)
+            val formattedDate = if (shortenDates) {
+                DateUtils.formatDateShort(session.createTime, useMmDd)
+            } else {
+                DateUtils.formatDate(session.createTime)
+            }
             if (formattedDate != null) {
                 dateChip.text = formattedDate
                 dateChip.visibility = View.VISIBLE

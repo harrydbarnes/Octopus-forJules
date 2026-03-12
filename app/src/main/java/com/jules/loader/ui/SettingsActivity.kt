@@ -174,6 +174,20 @@ class SettingsActivity : BaseActivity() {
         binding.switchPromptGallery.setOnCheckedChangeListener { _, isChecked ->
             PreferenceUtils.setPromptGalleryEnabled(this, isChecked)
         }
+
+        val shortenDates = PreferenceUtils.isShortenDatesEnabled(this)
+        binding.switchShortenDates.isChecked = shortenDates
+        binding.switchDateFormatMmdd.isEnabled = shortenDates
+        binding.switchDateFormatMmdd.isChecked = PreferenceUtils.isDateFormatMMDD(this)
+
+        binding.switchShortenDates.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setShortenDatesEnabled(this, isChecked)
+            binding.switchDateFormatMmdd.isEnabled = isChecked
+        }
+
+        binding.switchDateFormatMmdd.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setDateFormatMMDD(this, isChecked)
+        }
     }
 
     private fun setupThemeSelection() {

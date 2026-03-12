@@ -75,6 +75,12 @@ object DateUtils {
         return "$day$suffix $month"
     }
 
+    fun formatDateShort(dateString: String?, useMmDd: Boolean = false): String? {
+        val date = parseDate(dateString) ?: return null
+        val pattern = if (useMmDd) "MM/dd" else "dd/MM"
+        return getDisplayFormatter(pattern).format(date)
+    }
+
     private fun getDayOfMonthSuffix(n: Int): String {
         if (n in 11..13) return "th"
         return when (n % 10) {
