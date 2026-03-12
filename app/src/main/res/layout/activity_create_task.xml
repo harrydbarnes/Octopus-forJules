@@ -289,13 +289,11 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.progressindicator.LinearProgressIndicator
+    <com.jules.loader.ui.widget.MorphingLoadingIndicator
         android:id="@+id/pageLoadingIndicator"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:indeterminate="true"
-        android:visibility="gone"
-        app:trackCornerRadius="0dp" />
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -58,6 +58,7 @@ class TaskDetailActivity : BaseActivity() {
         const val CONST_PLAN_COMPLETED_MARKER = "All plan steps have been successfully completed. Ready for submission."
         const val CONST_COMPILED_CORRECTLY_MARKER = "Ran tests and compiled successfully."
         const val CONST_RATING_MARKER = "### Final Rating: #Correct#"
+        const val TYPE_PLAN_APPROVED = "PLAN APPROVED"
 
         val WORKING_TYPES = setOf("WORKING", "COMMITTING_CODE", "EXECUTING TESTS", "RUNNING TESTS")
         val TERMINAL_STATES = setOf("COMPLETED", "FAILED", "CANCELLED", "TERMINATED")
@@ -67,11 +68,12 @@ class TaskDetailActivity : BaseActivity() {
             val lines = text.split("\n")
             for ((index, line) in lines.withIndex()) {
                 if (index > 0) spannableString.append("\n")
+                val trimmed = line.trimStart()
                 when {
-                    line.startsWith("- ") -> {
-                        // "- text" → bullet point
+                    trimmed.startsWith("- ") -> {
+                        // "- text" or "- **bold**" → bullet point
                         val start = spannableString.length
-                        spannableString.append(applyInlineBold(line.substring(2)))
+                        spannableString.append(applyInlineBold(trimmed.substring(2)))
                         spannableString.setSpan(
                             android.text.style.BulletSpan(16),
                             start,
@@ -79,21 +81,10 @@ class TaskDetailActivity : BaseActivity() {
                             android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                         )
                     }
-                    line.startsWith("* ") -> {
-                        // "* text" → bullet point
+                    trimmed.startsWith("* ") -> {
+                        // "* text" or "* **bold**" → bullet point (content may be bold)
                         val start = spannableString.length
-                        spannableString.append(applyInlineBold(line.substring(2)))
-                        spannableString.setSpan(
-                            android.text.style.BulletSpan(16),
-                            start,
-                            spannableString.length,
-                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
-                    }
-                    line.startsWith("***") -> {
-                        // "***bold text**" → bold bullet point (leading * is bullet marker, **text** is bold)
-                        val start = spannableString.length
-                        spannableString.append(applyInlineBold(line.substring(1)))
+                        spannableString.append(applyInlineBold(trimmed.substring(2)))
                         spannableString.setSpan(
                             android.text.style.BulletSpan(16),
                             start,
@@ -410,6 +401,7 @@ class TaskDetailActivity : BaseActivity() {
 
     private fun startPollingLogs(id: String) {
         lifecycleScope.launch {
+            var initialLoadDone = false
             while (isActive) {
                 try {
                     val session = repository.getSession(id)
@@ -435,8 +427,16 @@ class TaskDetailActivity : BaseActivity() {
                     }
 
                     if (!isLoadingMore) {
+                        if (!initialLoadDone) {
+                            binding.logsLoadingIndicator.visibility = View.VISIBLE
+                        }
                         val response = repository.getActivities(id, pageToken = null)
                         addLogs(response.activities ?: emptyList())
+
+                        if (!initialLoadDone) {
+                            initialLoadDone = true
+                            binding.logsLoadingIndicator.visibility = View.GONE
+                        }
 
                         // Only set the initial token for backward pagination
                         if (nextPageToken == null) {
@@ -449,6 +449,10 @@ class TaskDetailActivity : BaseActivity() {
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("TaskDetailActivity", "Error polling logs", e)
+                    if (!initialLoadDone) {
+                        initialLoadDone = true
+                        binding.logsLoadingIndicator.visibility = View.GONE
+                    }
                 }
                 delay(POLLING_INTERVAL_MS)
             }
@@ -498,7 +502,19 @@ class TaskDetailActivity : BaseActivity() {
             allLogs.addAll(uniqueNewLogs)
             // Keep allLogs sorted so any snapshot taken elsewhere (e.g., sendMessage) is consistent
             allLogs.sortBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-            ArrayList(allLogs)
+
+            // Remove consecutive entries that resolve to the same type (e.g., two PLAN APPROVED in a row)
+            val deduped = allLogs.fold(mutableListOf<ActivityLog>()) { acc, log ->
+                val resolvedType = log.getResolvedType().uppercase(java.util.Locale.ROOT)
+                val prevType = acc.lastOrNull()?.getResolvedType()?.uppercase(java.util.Locale.ROOT)
+                if (resolvedType == TYPE_PLAN_APPROVED && resolvedType == prevType) {
+                    // Keep only the first of consecutive PLAN APPROVED entries
+                } else {
+                    acc.add(log)
+                }
+                acc
+            }
+            ArrayList(deduped)
         }
         logAdapter.submitList(snapshot)
     }
@@ -550,7 +566,7 @@ class TaskDetailActivity : BaseActivity() {
             holder.typeIconEnd.visibility = View.GONE
 
             when {
-                type == "PLAN APPROVED" -> {
+                type == TaskDetailActivity.TYPE_PLAN_APPROVED -> {
                     bindPlanApprovedLog(holder, logId, position)
                 }
                 type.contains("REVIEW") -> {

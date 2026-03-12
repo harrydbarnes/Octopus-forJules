@@ -90,14 +90,13 @@
                 android:layout_height="wrap_content"
                 android:text="@string/save_continue" />
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
+            <com.jules.loader.ui.widget.MorphingLoadingIndicator
                 android:id="@+id/progressBar"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:indeterminate="true"
-                android:visibility="gone"
-                app:trackCornerRadius="50dp" />
+                android:layout_marginTop="12dp"
+                android:layout_gravity="center_horizontal"
+                android:visibility="gone" />
 
         </LinearLayout>
 
