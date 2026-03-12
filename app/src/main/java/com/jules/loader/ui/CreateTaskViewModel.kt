@@ -47,7 +47,7 @@ class CreateTaskViewModel(private val repository: JulesRepository) : ViewModel()
 
     private fun loadSources() {
         viewModelScope.launch {
-            if (!repository.hasValidSourceCache()) {
+            if (!repository.hasValidSourceCache() || _availableSources.value.isEmpty()) {
                 _isSourcesLoading.value = true
             }
             try {

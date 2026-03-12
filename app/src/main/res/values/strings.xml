@@ -138,6 +138,8 @@
     <string name="status_initialising">Initialising</string>
     <string name="status_idle">Idle</string>
     <string name="error_load_branches">Failed to load branches</string>
+    <string name="input_message_hint">Type a message...</string>
+    <string name="action_send">Send</string>
 
     <!-- Prompt Gallery Titles -->
     <string name="prompt_performance_title">⚡ Performance</string>

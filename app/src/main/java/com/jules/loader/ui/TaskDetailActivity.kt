@@ -36,6 +36,7 @@ class TaskDetailActivity : BaseActivity() {
     private var nextPageToken: String? = null
     private var lastLoadedPageToken: String? = null
     private var isLoadingMore = false
+    private var isApprovingPlan = false
     private val allLogs = java.util.Collections.synchronizedList(java.util.ArrayList<ActivityLog>())
     private var currentPrUrl: String? = null
     private var expandedItems = mutableSetOf<String>()
@@ -207,6 +208,7 @@ class TaskDetailActivity : BaseActivity() {
         sessionId?.let { id ->
             lifecycleScope.launch {
                 try {
+                    isApprovingPlan = true
                     binding.btnApprovePlan.isEnabled = false
                     repository.approvePlan(id)
                     binding.planApprovalContainer.visibility = View.GONE
@@ -215,6 +217,8 @@ class TaskDetailActivity : BaseActivity() {
                     binding.btnApprovePlan.isEnabled = true
                     Toast.makeText(this@TaskDetailActivity, getString(R.string.error_approve_plan), Toast.LENGTH_SHORT).show()
                     Log.e("TaskDetailActivity", "Error approving plan", e)
+                } finally {
+                    isApprovingPlan = false
                 }
             }
         }
@@ -354,8 +358,12 @@ class TaskDetailActivity : BaseActivity() {
                     }
 
                     val awaitingApproval = session.status == STATUS_AWAITING_PLAN_APPROVAL
-                    binding.planApprovalContainer.visibility = if (awaitingApproval) View.VISIBLE else View.GONE
-                    binding.btnApprovePlan.isEnabled = awaitingApproval
+                    // Only update banner/button state when no approval is in-flight to avoid
+                    // overriding the optimistic disable set by approvePlan().
+                    if (!isApprovingPlan) {
+                        binding.planApprovalContainer.visibility = if (awaitingApproval) View.VISIBLE else View.GONE
+                        binding.btnApprovePlan.isEnabled = awaitingApproval
+                    }
 
                     if (!isLoadingMore) {
                         val response = repository.getActivities(id, pageToken = null)
