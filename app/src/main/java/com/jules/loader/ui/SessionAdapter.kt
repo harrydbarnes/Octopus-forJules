@@ -88,6 +88,10 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
             title.text = session.title ?: context.getString(R.string.untitled_session)
             prompt.text = session.prompt ?: context.getString(R.string.no_prompt)
 
+            // Slightly smaller text for source/date badge chips
+            sourceChip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11f)
+            dateChip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11f)
+
             val statusRaw = session.status ?: "Idle"
             val status = statusRaw.replace("_", " ")
             statusChip.text = status
