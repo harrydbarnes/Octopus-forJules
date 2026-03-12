@@ -154,9 +154,12 @@ class CreateTaskActivity : BaseActivity() {
                             displayName
                         }.distinct()
 
+                        val wasPopupShowing = binding.repoInput.isPopupShowing
                         repoAdapter?.clear()
                         repoAdapter?.addAll(sourceNames)
-                        repoAdapter?.notifyDataSetChanged()
+                        if (wasPopupShowing) {
+                            binding.repoInput.post { binding.repoInput.showDropDown() }
+                        }
                     }
                 }
 
