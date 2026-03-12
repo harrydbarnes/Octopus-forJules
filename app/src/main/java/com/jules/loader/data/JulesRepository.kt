@@ -187,6 +187,14 @@ class JulesRepository private constructor(private val context: Context) {
         return service.cancelSession(apiKey, sessionId)
     }
 
+    suspend fun approvePlan(sessionId: String) {
+        val apiKey = requireApiKey()
+        val response = service.approvePlan(apiKey, sessionId)
+        if (!response.isSuccessful) {
+            throw HttpException(response)
+        }
+    }
+
     suspend fun getSession(sessionId: String): Session {
         val apiKey = requireApiKey()
         return service.getSession(apiKey, sessionId)

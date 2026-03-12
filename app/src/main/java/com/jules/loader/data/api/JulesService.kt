@@ -44,6 +44,12 @@ interface JulesService {
         @Path("sessionId") sessionId: String
     ): Session
 
+    @POST("v1alpha/sessions/{sessionId}:approvePlan")
+    suspend fun approvePlan(
+        @Header("X-Goog-Api-Key") apiKey: String,
+        @Path("sessionId") sessionId: String
+    ): retrofit2.Response<Unit>
+
     @GET("v1alpha/sessions/{sessionId}")
     suspend fun getSession(
         @Header("X-Goog-Api-Key") apiKey: String,

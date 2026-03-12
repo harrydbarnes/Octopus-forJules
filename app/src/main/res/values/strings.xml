@@ -138,6 +138,8 @@
     <string name="status_initialising">Initialising</string>
     <string name="status_idle">Idle</string>
     <string name="error_load_branches">Failed to load branches</string>
+    <string name="input_message_hint">Type a message...</string>
+    <string name="action_send">Send</string>
 
     <!-- Prompt Gallery Titles -->
     <string name="prompt_performance_title">⚡ Performance</string>
@@ -151,4 +153,11 @@
     <string name="prompt_unit_tests_title">🧪 Unit Tests</string>
     <string name="prompt_gallery_title">Prompt Gallery:</string>
     <string name="error_loading_prompt">Error loading prompt</string>
+
+    <!-- Plan Approval -->
+    <string name="plan_approval_title">Plan Ready for Approval</string>
+    <string name="plan_approval_subtitle">Review the plan above, then approve to continue</string>
+    <string name="plan_approval_approve">Approve Plan</string>
+    <string name="plan_approval_success">Plan approved</string>
+    <string name="error_approve_plan">Failed to approve plan</string>
 </resources>

@@ -154,9 +154,12 @@ class CreateTaskActivity : BaseActivity() {
                             displayName
                         }.distinct()
 
+                        val wasPopupShowing = binding.repoInput.isPopupShowing
                         repoAdapter?.clear()
                         repoAdapter?.addAll(sourceNames)
-                        repoAdapter?.notifyDataSetChanged()
+                        if (wasPopupShowing) {
+                            binding.repoInput.post { binding.repoInput.showDropDown() }
+                        }
                     }
                 }
 
@@ -239,25 +242,9 @@ class CreateTaskActivity : BaseActivity() {
     private fun setupRepoSelector() {
         repoAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ArrayList())
         binding.repoInput.setAdapter(repoAdapter)
-        binding.repoInput.setOnClickListener {
-            if (binding.repoInput.isPopupShowing) {
-                binding.repoInput.dismissDropDown()
-            } else {
-                binding.repoInput.showDropDown()
-            }
-        }
 
         branchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ArrayList())
         binding.branchInput.setAdapter(branchAdapter)
-        binding.branchInput.setOnClickListener {
-            if (!binding.repoInput.text.isNullOrBlank()) {
-                if (binding.branchInput.isPopupShowing) {
-                    binding.branchInput.dismissDropDown()
-                } else {
-                    binding.branchInput.showDropDown()
-                }
-            }
-        }
 
         binding.repoInput.setOnItemClickListener { parent, _, position, _ ->
             val selectedDisplayName = parent.getItemAtPosition(position) as String

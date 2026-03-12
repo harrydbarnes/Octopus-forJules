@@ -47,13 +47,18 @@ class CreateTaskViewModel(private val repository: JulesRepository) : ViewModel()
 
     private fun loadSources() {
         viewModelScope.launch {
-            if (!repository.hasValidSourceCache()) {
+            if (!repository.hasValidSourceCache() || _availableSources.value.isEmpty()) {
                 _isSourcesLoading.value = true
             }
             try {
-                // Fetch first page, handle further pages locally if needed.
-                val response = repository.getSources()
-                _availableSources.value = response.sources ?: emptyList()
+                val allSources = mutableListOf<SourceContext>()
+                var pageToken: String? = null
+                do {
+                    val response = repository.getSources(pageToken = pageToken)
+                    allSources.addAll(response.sources ?: emptyList())
+                    pageToken = response.nextPageToken
+                } while (pageToken != null)
+                _availableSources.value = allSources
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Failed to load repositories", e)
                 _errorEvent.emit(R.string.error_load_repositories)

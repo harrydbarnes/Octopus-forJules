@@ -36,6 +36,7 @@ class TaskDetailActivity : BaseActivity() {
     private var nextPageToken: String? = null
     private var lastLoadedPageToken: String? = null
     private var isLoadingMore = false
+    private var isApprovingPlan = false
     private val allLogs = java.util.Collections.synchronizedList(java.util.ArrayList<ActivityLog>())
     private var currentPrUrl: String? = null
     private var expandedItems = mutableSetOf<String>()
@@ -50,6 +51,7 @@ class TaskDetailActivity : BaseActivity() {
         const val EXTRA_SESSION_BRANCH = "EXTRA_SESSION_BRANCH"
         const val STATUS_PR_OPEN = "PR Open"
         const val STATUS_EXECUTING_TESTS = "Executing Tests"
+        const val STATUS_AWAITING_PLAN_APPROVAL = "AWAITING_PLAN_APPROVAL"
         private const val POLLING_INTERVAL_MS = 3000L
 
         const val CONST_REVIEW_MARKER = "**Analysis and Reasoning:**"
@@ -150,6 +152,20 @@ class TaskDetailActivity : BaseActivity() {
                 sendMessage(currentSessionId, message)
             }
         }
+
+        binding.btnApprovePlan.setOnClickListener {
+            approvePlan()
+        }
+
+        binding.inputContainer.addOnLayoutChangeListener { _, _, top, _, bottom, _, _, _, _ ->
+            val containerHeight = bottom - top
+            binding.logRecyclerView.setPadding(
+                binding.logRecyclerView.paddingLeft,
+                binding.logRecyclerView.paddingTop,
+                binding.logRecyclerView.paddingRight,
+                containerHeight
+            )
+        }
     }
 
     private fun sendMessage(sessionId: String, message: String) {
@@ -183,6 +199,26 @@ class TaskDetailActivity : BaseActivity() {
                 } catch (e: Exception) {
                     Toast.makeText(this@TaskDetailActivity, getString(R.string.error_cancel_session), Toast.LENGTH_SHORT).show()
                     Log.e("TaskDetailActivity", "Error cancelling task", e)
+                }
+            }
+        }
+    }
+
+    private fun approvePlan() {
+        sessionId?.let { id ->
+            lifecycleScope.launch {
+                try {
+                    isApprovingPlan = true
+                    binding.btnApprovePlan.isEnabled = false
+                    repository.approvePlan(id)
+                    binding.planApprovalContainer.visibility = View.GONE
+                    Toast.makeText(this@TaskDetailActivity, getString(R.string.plan_approval_success), Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    binding.btnApprovePlan.isEnabled = true
+                    Toast.makeText(this@TaskDetailActivity, getString(R.string.error_approve_plan), Toast.LENGTH_SHORT).show()
+                    Log.e("TaskDetailActivity", "Error approving plan", e)
+                } finally {
+                    isApprovingPlan = false
                 }
             }
         }
@@ -319,6 +355,14 @@ class TaskDetailActivity : BaseActivity() {
                     } else {
                         currentPrUrl = null
                         binding.detailPrChip.visibility = View.GONE
+                    }
+
+                    val awaitingApproval = session.status == STATUS_AWAITING_PLAN_APPROVAL
+                    // Only update banner/button state when no approval is in-flight to avoid
+                    // overriding the optimistic disable set by approvePlan().
+                    if (!isApprovingPlan) {
+                        binding.planApprovalContainer.visibility = if (awaitingApproval) View.VISIBLE else View.GONE
+                        binding.btnApprovePlan.isEnabled = awaitingApproval
                     }
 
                     if (!isLoadingMore) {
