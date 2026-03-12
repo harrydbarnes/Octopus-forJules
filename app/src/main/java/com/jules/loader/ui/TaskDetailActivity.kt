@@ -365,33 +365,37 @@ class TaskDetailActivity : BaseActivity() {
     }
 
     private fun addLogs(newLogs: List<ActivityLog>) {
-        val snapshot: List<ActivityLog>
+        val currentLogs: List<ActivityLog>
         synchronized(allLogs) {
-            // Append new logs avoiding duplicates
-            val existingIds = allLogs.mapNotNull { it.id }.toSet()
-            val uniqueNewLogs = newLogs.filter { log ->
-                val desc = log.getResolvedDescription()
-                val isNoDetails = desc?.trim() == "No details"
-                (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
-            }
-
-            if (uniqueNewLogs.isNotEmpty()) {
-                allLogs.addAll(uniqueNewLogs)
-            }
-            snapshot = ArrayList(allLogs)
+            currentLogs = ArrayList(allLogs)
         }
 
-        // Perform sorting and adapter submission outside the synchronized block to reduce contention
-        if (snapshot.isNotEmpty()) {
-            val sortedLogs = snapshot.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-            logAdapter.submitList(sortedLogs)
+        val existingIds = currentLogs.mapNotNull { it.id }.toSet()
+        val uniqueNewLogs = newLogs.filter { log ->
+            val desc = log.getResolvedDescription()
+            val isNoDetails = desc?.trim() == "No details"
+            (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
         }
+
+        if (uniqueNewLogs.isEmpty()) return
+
+        val combinedLogs = currentLogs + uniqueNewLogs
+        val sortedLogs = combinedLogs.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
+
+        synchronized(allLogs) {
+            allLogs.clear()
+            allLogs.addAll(sortedLogs)
+        }
+        logAdapter.submitList(sortedLogs)
     }
 
     class LogAdapter(
         private val expandedItems: Set<String>,
         private val onToggleExpand: (String, Boolean) -> Unit
     ) : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
+
+        data class LogDisplayData(val type: String, val description: String)
+        data class ReviewDisplayData(val displayDescription: String, val showToggleButton: Boolean)
 
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
@@ -415,16 +419,15 @@ class TaskDetailActivity : BaseActivity() {
             val logId = log.name ?: log.id
             val isExpanded = logId != null && expandedItems.contains(logId)
 
-            val (type, fullDescription) = resolveTypeAndDescription(log)
+            val logData = resolveTypeAndDescription(log)
+            val type = logData.type
+            val fullDescription = logData.description
 
             holder.typeText.text = type
             holder.timeText.text = com.jules.loader.util.DateUtils.formatChatTimestamp(log.timestamp) ?: log.timestamp ?: ""
             holder.progress.visibility = if (TaskDetailActivity.WORKING_TYPES.contains(type)) View.VISIBLE else View.GONE
 
             applyCardStyling(holder, type)
-
-            var displayDescription = fullDescription
-            var showToggleButton = false
 
             // Default visibility states
             holder.descText.visibility = View.VISIBLE
@@ -433,28 +436,49 @@ class TaskDetailActivity : BaseActivity() {
 
             when {
                 type == "PLAN APPROVED" -> {
-                    displayDescription = ""
-                    holder.descText.visibility = View.GONE
-                    holder.typeIconEnd.visibility = View.VISIBLE
+                    bindPlanApprovedLog(holder, logId, position)
                 }
                 type.contains("REVIEW") -> {
-                    val reviewData = bindReviewData(holder, isExpanded, fullDescription)
-                    displayDescription = reviewData.first
-                    showToggleButton = reviewData.second
+                    bindReviewLog(holder, isExpanded, fullDescription, logId, position)
                 }
                 type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED" -> {
-                    showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
-                    if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
-                        displayDescription = "" // Handled by RecyclerView
-                    }
+                    bindPlanLog(holder, fullDescription, isExpanded, logId, position)
+                }
+                else -> {
+                    bindDefaultLog(holder, fullDescription, logId, position)
                 }
             }
+        }
 
-            holder.descText.text = applyMarkdownBold(displayDescription)
+        private fun bindPlanApprovedLog(holder: LogViewHolder, logId: String?, position: Int) {
+            holder.descText.visibility = View.GONE
+            holder.typeIconEnd.visibility = View.VISIBLE
+            holder.descText.text = ""
+            setupToggleButton(holder, false, logId, position)
+        }
+
+        private fun bindReviewLog(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String, logId: String?, position: Int) {
+            val reviewData = bindReviewData(holder, isExpanded, fullDescription)
+            holder.descText.text = applyMarkdownBold(reviewData.displayDescription)
+            setupToggleButton(holder, reviewData.showToggleButton, logId, position)
+        }
+
+        private fun bindPlanLog(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean, logId: String?, position: Int) {
+            val showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
+            if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
+                holder.descText.text = "" // Handled by RecyclerView
+            } else {
+                holder.descText.text = applyMarkdownBold(fullDescription)
+            }
             setupToggleButton(holder, showToggleButton, logId, position)
         }
 
-        private fun resolveTypeAndDescription(log: ActivityLog): Pair<String, String> {
+        private fun bindDefaultLog(holder: LogViewHolder, fullDescription: String, logId: String?, position: Int) {
+            holder.descText.text = applyMarkdownBold(fullDescription)
+            setupToggleButton(holder, false, logId, position)
+        }
+
+        private fun resolveTypeAndDescription(log: ActivityLog): LogDisplayData {
             var type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
             var fullDescription = log.getResolvedDescription() ?: ""
 
@@ -465,13 +489,16 @@ class TaskDetailActivity : BaseActivity() {
                 fullDescription.contains(CONST_PLAN_COMPLETED_MARKER) -> type = "ALL PLAN STEPS COMPLETED"
                 fullDescription.contains(CONST_COMPILED_CORRECTLY_MARKER) -> type = "COMPILED CORRECTLY"
             }
-            return Pair(type, fullDescription)
+            return LogDisplayData(type, fullDescription)
         }
 
         private fun isCodeTypeLog(type: String): Boolean {
-            return (type.contains("CODE") && !type.contains("REVIEW")) ||
-                   type.contains("FILE") ||
-                   type.contains("COMMITTING")
+            val codeKeywords = setOf("CODE", "FILE", "COMMITTING")
+            return if (type.contains("REVIEW")) {
+                false
+            } else {
+                codeKeywords.any { type.contains(it) }
+            }
         }
 
         private fun applyCardStyling(holder: LogViewHolder, type: String) {
@@ -487,7 +514,7 @@ class TaskDetailActivity : BaseActivity() {
             holder.typeIcon.visibility = if (type == "CODE REVIEW") View.VISIBLE else View.GONE
         }
 
-        private fun bindReviewData(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String): Pair<String, Boolean> {
+        private fun bindReviewData(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String): ReviewDisplayData {
             var displayDescription = ""
             val showToggleButton = true
             if (!isExpanded) {
@@ -498,7 +525,7 @@ class TaskDetailActivity : BaseActivity() {
                 holder.btnToggleExpand.text = "Collapse Review"
                 holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
             }
-            return Pair(displayDescription, showToggleButton)
+            return ReviewDisplayData(displayDescription, showToggleButton)
         }
 
         private fun bindPlanData(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean): Boolean {
