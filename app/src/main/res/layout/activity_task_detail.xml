@@ -157,6 +157,16 @@
 
             </LinearLayout>
 
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/approvePlanProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:trackCornerRadius="50dp"
+                app:indicatorSize="32dp" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnApprovePlan"
                 android:layout_width="wrap_content"

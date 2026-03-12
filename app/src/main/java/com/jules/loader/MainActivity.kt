@@ -49,6 +49,7 @@ class MainActivity : BaseActivity() {
 
     private var nextPageToken: String? = null
     private var isLoadingMore = false
+    private var shimmerAnimators: List<ObjectAnimator> = emptyList()
 
     companion object {
         private const val KEY_SESSIONS = "key_sessions"
@@ -557,6 +558,7 @@ class MainActivity : BaseActivity() {
         val isFirstLoad = !forceRefresh && !repository.hasCachedSessions()
         if (isFirstLoad) {
             binding.skeletonLayout.visibility = View.VISIBLE
+            startSkeletonShimmer()
             binding.errorText.visibility = View.GONE
             binding.sessionsRecyclerView.visibility = View.GONE
         }
@@ -590,10 +592,34 @@ class MainActivity : BaseActivity() {
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
             } finally {
                 binding.skeletonLayout.visibility = View.GONE
+                stopSkeletonShimmer()
                 binding.swipeRefresh.isRefreshing = false
                 isLoadingMore = false
             }
         }
+    }
+
+    private fun startSkeletonShimmer() {
+        val animators = mutableListOf<ObjectAnimator>()
+        val layout = binding.skeletonLayout
+        for (i in 0 until layout.childCount) {
+            val child = layout.getChildAt(i)
+            val animator = ObjectAnimator.ofFloat(child, View.ALPHA, 0.4f, 1.0f).apply {
+                duration = 900L
+                startDelay = (i * 130L)
+                repeatMode = ObjectAnimator.REVERSE
+                repeatCount = ObjectAnimator.INFINITE
+                interpolator = AccelerateDecelerateInterpolator()
+            }
+            animator.start()
+            animators.add(animator)
+        }
+        shimmerAnimators = animators
+    }
+
+    private fun stopSkeletonShimmer() {
+        shimmerAnimators.forEach { it.cancel() }
+        shimmerAnimators = emptyList()
     }
 
     private fun loadMoreSessions() {
