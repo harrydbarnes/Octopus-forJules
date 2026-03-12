@@ -38,8 +38,10 @@ class TaskDetailActivity : BaseActivity() {
     private var isLoadingMore = false
     private val allLogs = java.util.Collections.synchronizedList(java.util.ArrayList<ActivityLog>())
     private var currentPrUrl: String? = null
+    private var expandedItems = mutableSetOf<String>()
 
     companion object {
+        private const val KEY_EXPANDED_ITEMS = "KEY_EXPANDED_ITEMS"
         const val EXTRA_SESSION_ID = "EXTRA_SESSION_ID"
         const val EXTRA_SESSION_TITLE = "EXTRA_SESSION_TITLE"
         const val EXTRA_SESSION_PROMPT = "EXTRA_SESSION_PROMPT"
@@ -49,6 +51,11 @@ class TaskDetailActivity : BaseActivity() {
         const val STATUS_PR_OPEN = "PR Open"
         const val STATUS_EXECUTING_TESTS = "Executing Tests"
         private const val POLLING_INTERVAL_MS = 3000L
+
+        const val CONST_REVIEW_MARKER = "**Analysis and Reasoning:**"
+        const val CONST_PLAN_COMPLETED_MARKER = "All plan steps have been successfully completed. Ready for submission."
+        const val CONST_COMPILED_CORRECTLY_MARKER = "Ran tests and compiled successfully."
+        const val CONST_RATING_MARKER = "### Final Rating: #Correct#"
 
         val WORKING_TYPES = setOf("WORKING", "COMMITTING_CODE", "EXECUTING TESTS", "RUNNING TESTS")
         val TERMINAL_STATES = setOf("COMPLETED", "FAILED", "CANCELLED", "TERMINATED")
@@ -81,13 +88,22 @@ class TaskDetailActivity : BaseActivity() {
 
         populateSessionDetails()
 
-        // Setup Log Bottom Sheet
-        val behavior = BottomSheetBehavior.from(binding.logBottomSheet)
-        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        if (savedInstanceState != null) {
+            val savedItems = savedInstanceState.getStringArrayList(KEY_EXPANDED_ITEMS)
+            if (savedItems != null) {
+                expandedItems.addAll(savedItems)
+            }
+        }
 
         // Setup Log RecyclerView
         binding.logRecyclerView.layoutManager = LinearLayoutManager(this)
-        logAdapter = LogAdapter()
+        logAdapter = LogAdapter(expandedItems) { logId, isExpanded ->
+            if (isExpanded) {
+                expandedItems.add(logId)
+            } else {
+                expandedItems.remove(logId)
+            }
+        }
         binding.logRecyclerView.adapter = logAdapter
 
         binding.logRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -204,6 +220,11 @@ class TaskDetailActivity : BaseActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putStringArrayList(KEY_EXPANDED_ITEMS, ArrayList(expandedItems))
+    }
+
     override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_task_detail, menu)
         return true
@@ -302,7 +323,7 @@ class TaskDetailActivity : BaseActivity() {
 
                     if (!isLoadingMore) {
                         val response = repository.getActivities(id, pageToken = null)
-                        addLogs(response.activities ?: emptyList(), prepend = false)
+                        addLogs(response.activities ?: emptyList())
 
                         // Only set the initial token for backward pagination
                         if (nextPageToken == null) {
@@ -334,7 +355,7 @@ class TaskDetailActivity : BaseActivity() {
                 lastLoadedPageToken = token
                 nextPageToken = response.nextPageToken
 
-                addLogs(response.activities ?: emptyList(), prepend = true)
+                addLogs(response.activities ?: emptyList())
             } catch (e: Exception) {
                 android.util.Log.e("TaskDetailActivity", "Error loading more logs", e)
             } finally {
@@ -343,29 +364,45 @@ class TaskDetailActivity : BaseActivity() {
         }
     }
 
-    private fun addLogs(newLogs: List<ActivityLog>, prepend: Boolean) {
+    private fun addLogs(newLogs: List<ActivityLog>) {
+        val snapshot: List<ActivityLog>
         synchronized(allLogs) {
             // Append new logs avoiding duplicates
             val existingIds = allLogs.mapNotNull { it.id }.toSet()
-            val uniqueNewLogs = newLogs.filter { it.id == null || !existingIds.contains(it.id) }
+            val uniqueNewLogs = newLogs.filter { log ->
+                val desc = log.getResolvedDescription()
+                val isNoDetails = desc?.trim() == "No details"
+                (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
+            }
 
             if (uniqueNewLogs.isNotEmpty()) {
-                if (prepend) {
-                    allLogs.addAll(0, uniqueNewLogs)
-                } else {
-                    allLogs.addAll(uniqueNewLogs)
-                }
-                logAdapter.submitList(ArrayList(allLogs))
+                allLogs.addAll(uniqueNewLogs)
             }
+            snapshot = ArrayList(allLogs)
+        }
+
+        // Perform sorting and adapter submission outside the synchronized block to reduce contention
+        if (snapshot.isNotEmpty()) {
+            val sortedLogs = snapshot.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
+            logAdapter.submitList(sortedLogs)
         }
     }
 
-    class LogAdapter : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
+    class LogAdapter(
+        private val expandedItems: Set<String>,
+        private val onToggleExpand: (String, Boolean) -> Unit
+    ) : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
+
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
             val typeText: TextView = view.findViewById(R.id.logType)
+            val typeIcon: android.widget.ImageView = view.findViewById(R.id.logTypeIcon)
+            val typeIconEnd: android.widget.ImageView = view.findViewById(R.id.logTypeIconEnd)
             val progress: View = view.findViewById(R.id.logProgress)
             val descText: TextView = view.findViewById(R.id.logDescription)
             val timeText: TextView = view.findViewById(R.id.logTimestamp)
+            val btnToggleExpand: com.google.android.material.button.MaterialButton = view.findViewById(R.id.btnToggleExpand)
+            val planStepsRecyclerView: RecyclerView = view.findViewById(R.id.planStepsRecyclerView)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LogViewHolder {
@@ -375,22 +412,186 @@ class TaskDetailActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
             val log = getItem(position)
-            val type = log.getResolvedType()
-            holder.typeText.text = type
-            holder.descText.text = log.getResolvedDescription()
-            holder.timeText.text = log.timestamp ?: ""
+            val logId = log.name ?: log.id
+            val isExpanded = logId != null && expandedItems.contains(logId)
 
-            if (TaskDetailActivity.WORKING_TYPES.contains(type.uppercase(java.util.Locale.ROOT))) {
-                holder.progress.visibility = View.VISIBLE
-            } else {
-                holder.progress.visibility = View.GONE
+            val (type, fullDescription) = resolveTypeAndDescription(log)
+
+            holder.typeText.text = type
+            holder.timeText.text = com.jules.loader.util.DateUtils.formatChatTimestamp(log.timestamp) ?: log.timestamp ?: ""
+            holder.progress.visibility = if (TaskDetailActivity.WORKING_TYPES.contains(type)) View.VISIBLE else View.GONE
+
+            applyCardStyling(holder, type)
+
+            var displayDescription = fullDescription
+            var showToggleButton = false
+
+            // Default visibility states
+            holder.descText.visibility = View.VISIBLE
+            holder.planStepsRecyclerView.visibility = View.GONE
+            holder.typeIconEnd.visibility = View.GONE
+
+            when {
+                type == "PLAN APPROVED" -> {
+                    displayDescription = ""
+                    holder.descText.visibility = View.GONE
+                    holder.typeIconEnd.visibility = View.VISIBLE
+                }
+                type.contains("REVIEW") -> {
+                    val reviewData = bindReviewData(holder, isExpanded, fullDescription)
+                    displayDescription = reviewData.first
+                    showToggleButton = reviewData.second
+                }
+                type.contains("PLAN") && type != "ALL PLAN STEPS COMPLETED" -> {
+                    showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
+                    if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
+                        displayDescription = "" // Handled by RecyclerView
+                    }
+                }
             }
 
-            if (type.contains("CODE") || type.contains("FILE") || holder.descText.text.contains("```")) {
+            holder.descText.text = applyMarkdownBold(displayDescription)
+            setupToggleButton(holder, showToggleButton, logId, position)
+        }
+
+        private fun resolveTypeAndDescription(log: ActivityLog): Pair<String, String> {
+            var type = log.getResolvedType().uppercase(java.util.Locale.ROOT)
+            var fullDescription = log.getResolvedDescription() ?: ""
+
+            fullDescription = fullDescription.replace(CONST_RATING_MARKER, "").trim()
+
+            when {
+                fullDescription.contains(CONST_REVIEW_MARKER) -> type = "CODE REVIEW"
+                fullDescription.contains(CONST_PLAN_COMPLETED_MARKER) -> type = "ALL PLAN STEPS COMPLETED"
+                fullDescription.contains(CONST_COMPILED_CORRECTLY_MARKER) -> type = "COMPILED CORRECTLY"
+            }
+            return Pair(type, fullDescription)
+        }
+
+        private fun isCodeTypeLog(type: String): Boolean {
+            return (type.contains("CODE") && !type.contains("REVIEW")) ||
+                   type.contains("FILE") ||
+                   type.contains("COMMITTING")
+        }
+
+        private fun applyCardStyling(holder: LogViewHolder, type: String) {
+            if (isCodeTypeLog(type)) {
+                holder.cardView.setCardBackgroundColor(holder.itemView.context.getColor(R.color.jules_purple_light))
                 holder.descText.typeface = android.graphics.Typeface.MONOSPACE
             } else {
+                val typedValue = android.util.TypedValue()
+                holder.itemView.context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainer, typedValue, true)
+                holder.cardView.setCardBackgroundColor(typedValue.data)
                 holder.descText.typeface = android.graphics.Typeface.DEFAULT
             }
+            holder.typeIcon.visibility = if (type == "CODE REVIEW") View.VISIBLE else View.GONE
+        }
+
+        private fun bindReviewData(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String): Pair<String, Boolean> {
+            var displayDescription = ""
+            val showToggleButton = true
+            if (!isExpanded) {
+                holder.btnToggleExpand.text = "Expand Review"
+                holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
+            } else {
+                displayDescription = fullDescription
+                holder.btnToggleExpand.text = "Collapse Review"
+                holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
+            }
+            return Pair(displayDescription, showToggleButton)
+        }
+
+        private fun bindPlanData(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean): Boolean {
+            val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
+            val matches = regex.findAll(fullDescription).toList()
+
+            if (matches.isNotEmpty()) {
+                val parsedSteps = matches.mapIndexed { index, matchResult ->
+                    (index + 1).toString() to matchResult.groupValues[1].trim()
+                }
+
+                holder.descText.visibility = View.GONE
+                holder.planStepsRecyclerView.visibility = View.VISIBLE
+                holder.planStepsRecyclerView.layoutManager = LinearLayoutManager(holder.itemView.context)
+
+                if (holder.planStepsRecyclerView.itemDecorationCount == 0) {
+                    val divider = androidx.recyclerview.widget.DividerItemDecoration(holder.itemView.context, androidx.recyclerview.widget.DividerItemDecoration.VERTICAL)
+                    holder.planStepsRecyclerView.addItemDecoration(divider)
+                }
+
+                val needsToggle = parsedSteps.size > 3
+
+                if (needsToggle && !isExpanded) {
+                    holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps.take(3))
+                    holder.btnToggleExpand.text = "Show Full Plan"
+                    holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_more)
+                } else {
+                    holder.planStepsRecyclerView.adapter = PlanStepAdapter(parsedSteps)
+                    if (needsToggle) {
+                        holder.btnToggleExpand.text = "Show Less"
+                        holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
+                    }
+                }
+                return needsToggle
+            }
+            return false
+        }
+
+        private fun setupToggleButton(holder: LogViewHolder, showToggleButton: Boolean, logId: String?, position: Int) {
+            if (showToggleButton && logId != null) {
+                holder.btnToggleExpand.visibility = View.VISIBLE
+                holder.btnToggleExpand.setOnClickListener {
+                    val currentlyExpanded = expandedItems.contains(logId)
+                    onToggleExpand(logId, !currentlyExpanded)
+                    notifyItemChanged(position)
+                }
+            } else {
+                holder.btnToggleExpand.visibility = View.GONE
+                holder.btnToggleExpand.setOnClickListener(null)
+            }
+        }
+
+        private fun applyMarkdownBold(text: String): CharSequence {
+            val spannableString = android.text.SpannableStringBuilder()
+            var currentIndex = 0
+            val regex = Regex("\\*\\*(.*?)\\*\\*")
+            val matches = regex.findAll(text)
+
+            for (match in matches) {
+                spannableString.append(text.substring(currentIndex, match.range.first))
+                val boldText = match.groupValues[1]
+                val start = spannableString.length
+                spannableString.append(boldText)
+                spannableString.setSpan(
+                    android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    start,
+                    spannableString.length,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                currentIndex = match.range.last + 1
+            }
+            spannableString.append(text.substring(currentIndex))
+            return spannableString
+        }
+
+        class PlanStepAdapter(private val steps: List<Pair<String, String>>) : RecyclerView.Adapter<PlanStepAdapter.PlanStepViewHolder>() {
+            class PlanStepViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+                val number: TextView = view.findViewById(R.id.planStepNumber)
+                val text: TextView = view.findViewById(R.id.planStepText)
+            }
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlanStepViewHolder {
+                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_plan_step, parent, false)
+                return PlanStepViewHolder(view)
+            }
+
+            override fun onBindViewHolder(holder: PlanStepViewHolder, position: Int) {
+                val step = steps[position]
+                holder.number.text = step.first
+                holder.text.text = step.second
+            }
+
+            override fun getItemCount() = steps.size
         }
 
         class LogDiffCallback : DiffUtil.ItemCallback<ActivityLog>() {
