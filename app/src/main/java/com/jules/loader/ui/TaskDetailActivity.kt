@@ -382,12 +382,10 @@ class TaskDetailActivity : BaseActivity() {
             if (uniqueNewLogs.isEmpty()) return
 
             allLogs.addAll(uniqueNewLogs)
+            // Keep allLogs sorted so any snapshot taken elsewhere (e.g., sendMessage) is consistent
+            allLogs.sortBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
             ArrayList(allLogs)
         }
-
-        // Sort the snapshot outside the lock
-        snapshot.sortBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-
         logAdapter.submitList(snapshot)
     }
 
