@@ -376,10 +376,8 @@ class TaskDetailActivity : BaseActivity() {
             if (uniqueNewLogs.isEmpty()) return
 
             allLogs.addAll(uniqueNewLogs)
-            val sorted = allLogs.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-            allLogs.clear()
-            allLogs.addAll(sorted)
-            logAdapter.submitList(sorted)
+            allLogs.sortBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
+            logAdapter.submitList(ArrayList(allLogs))
         }
     }
 
