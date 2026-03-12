@@ -71,10 +71,11 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <FrameLayout
+        <LinearLayout
             android:id="@+id/buttonContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_marginTop="32dp"
             android:layout_marginBottom="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -89,16 +90,16 @@
                 android:layout_height="wrap_content"
                 android:text="@string/save_continue" />
 
-            <com.google.android.material.progressindicator.CircularProgressIndicator
+            <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/progressBar"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
+                android:layout_marginTop="8dp"
                 android:indeterminate="true"
                 android:visibility="gone"
                 app:trackCornerRadius="50dp" />
 
-        </FrameLayout>
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

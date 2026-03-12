@@ -67,18 +67,41 @@ class TaskDetailActivity : BaseActivity() {
             val lines = text.split("\n")
             for ((index, line) in lines.withIndex()) {
                 if (index > 0) spannableString.append("\n")
-                if (line.startsWith("- ")) {
-                    val bulletContent = line.substring(2)
-                    val start = spannableString.length
-                    spannableString.append(applyInlineBold(bulletContent))
-                    spannableString.setSpan(
-                        android.text.style.BulletSpan(16),
-                        start,
-                        spannableString.length,
-                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
-                } else {
-                    spannableString.append(applyInlineBold(line))
+                when {
+                    line.startsWith("- ") -> {
+                        // "- text" → bullet point
+                        val start = spannableString.length
+                        spannableString.append(applyInlineBold(line.substring(2)))
+                        spannableString.setSpan(
+                            android.text.style.BulletSpan(16),
+                            start,
+                            spannableString.length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    line.startsWith("* ") -> {
+                        // "* text" → bullet point
+                        val start = spannableString.length
+                        spannableString.append(applyInlineBold(line.substring(2)))
+                        spannableString.setSpan(
+                            android.text.style.BulletSpan(16),
+                            start,
+                            spannableString.length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    line.startsWith("***") -> {
+                        // "***bold text**" → bold bullet point (leading * is bullet marker, **text** is bold)
+                        val start = spannableString.length
+                        spannableString.append(applyInlineBold(line.substring(1)))
+                        spannableString.setSpan(
+                            android.text.style.BulletSpan(16),
+                            start,
+                            spannableString.length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    else -> spannableString.append(applyInlineBold(line))
                 }
             }
             return spannableString
@@ -464,9 +487,10 @@ class TaskDetailActivity : BaseActivity() {
         if (validNewLogs.isEmpty()) return
 
         val snapshot = synchronized(allLogs) {
-            val existingIds = allLogs.mapNotNull { it.id }.toSet()
+            val existingIdentifiers = allLogs.map { it.name ?: it.id }.filterNotNull().toSet()
             val uniqueNewLogs = validNewLogs.filter { log ->
-                log.id == null || !existingIds.contains(log.id)
+                val identifier = log.name ?: log.id
+                identifier == null || !existingIdentifiers.contains(identifier)
             }
 
             if (uniqueNewLogs.isEmpty()) return

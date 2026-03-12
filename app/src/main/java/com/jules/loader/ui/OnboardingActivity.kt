@@ -12,7 +12,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
@@ -184,11 +184,11 @@ class OnboardingActivity : BaseActivity() {
             private val input: TextInputEditText = itemView.findViewById(R.id.apiKeyInput)
             private val getKeyLink: TextView = itemView.findViewById(R.id.getKeyLink)
             private val saveButton: Button = itemView.findViewById(R.id.saveButton)
-            private val progressBar: CircularProgressIndicator = itemView.findViewById(R.id.progressBar)
+            private val progressBar: LinearProgressIndicator = itemView.findViewById(R.id.progressBar)
 
             private fun setLoading(isLoading: Boolean) {
                 progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-                saveButton.visibility = if (isLoading) View.INVISIBLE else View.VISIBLE
+                saveButton.isEnabled = !isLoading
                 input.isEnabled = !isLoading
             }
 

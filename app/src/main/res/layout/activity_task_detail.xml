@@ -165,7 +165,7 @@
                 android:indeterminate="true"
                 android:visibility="gone"
                 app:trackCornerRadius="50dp"
-                app:indicatorSize="32dp" />
+                app:indicatorSize="28dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnApprovePlan"
