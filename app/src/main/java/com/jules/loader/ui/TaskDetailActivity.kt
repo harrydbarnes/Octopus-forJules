@@ -365,20 +365,28 @@ class TaskDetailActivity : BaseActivity() {
     }
 
     private fun addLogs(newLogs: List<ActivityLog>) {
-        synchronized(allLogs) {
+        // Pre-filter new logs outside the lock to minimize contention
+        val validNewLogs = newLogs.filter { log ->
+            val desc = log.getResolvedDescription()
+            desc?.trim() != "No details"
+        }
+
+        if (validNewLogs.isEmpty()) return
+
+        val snapshot = synchronized(allLogs) {
             val existingIds = allLogs.mapNotNull { it.id }.toSet()
-            val uniqueNewLogs = newLogs.filter { log ->
-                val desc = log.getResolvedDescription()
-                val isNoDetails = desc?.trim() == "No details"
-                (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
+            val uniqueNewLogs = validNewLogs.filter { log ->
+                log.id == null || !existingIds.contains(log.id)
             }
 
             if (uniqueNewLogs.isEmpty()) return
 
             allLogs.addAll(uniqueNewLogs)
+            // Keep allLogs sorted so any snapshot taken elsewhere (e.g., sendMessage) is consistent
             allLogs.sortBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-            logAdapter.submitList(ArrayList(allLogs))
+            ArrayList(allLogs)
         }
+        logAdapter.submitList(snapshot)
     }
 
     class LogAdapter(
