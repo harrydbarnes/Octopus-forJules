@@ -365,28 +365,22 @@ class TaskDetailActivity : BaseActivity() {
     }
 
     private fun addLogs(newLogs: List<ActivityLog>) {
-        val currentLogs: List<ActivityLog>
         synchronized(allLogs) {
-            currentLogs = ArrayList(allLogs)
-        }
+            val existingIds = allLogs.mapNotNull { it.id }.toSet()
+            val uniqueNewLogs = newLogs.filter { log ->
+                val desc = log.getResolvedDescription()
+                val isNoDetails = desc?.trim() == "No details"
+                (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
+            }
 
-        val existingIds = currentLogs.mapNotNull { it.id }.toSet()
-        val uniqueNewLogs = newLogs.filter { log ->
-            val desc = log.getResolvedDescription()
-            val isNoDetails = desc?.trim() == "No details"
-            (log.id == null || !existingIds.contains(log.id)) && !isNoDetails
-        }
+            if (uniqueNewLogs.isEmpty()) return
 
-        if (uniqueNewLogs.isEmpty()) return
-
-        val combinedLogs = currentLogs + uniqueNewLogs
-        val sortedLogs = combinedLogs.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-
-        synchronized(allLogs) {
+            allLogs.addAll(uniqueNewLogs)
+            val sorted = allLogs.sortedBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
             allLogs.clear()
-            allLogs.addAll(sortedLogs)
+            allLogs.addAll(sorted)
+            logAdapter.submitList(sorted)
         }
-        logAdapter.submitList(sortedLogs)
     }
 
     class LogAdapter(
@@ -396,6 +390,7 @@ class TaskDetailActivity : BaseActivity() {
 
         data class LogDisplayData(val type: String, val description: String)
         data class ReviewDisplayData(val displayDescription: String, val showToggleButton: Boolean)
+        data class PlanDisplayData(val isPlanConfigured: Boolean, val showToggleButton: Boolean)
 
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val cardView: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.bubbleCard)
@@ -464,13 +459,13 @@ class TaskDetailActivity : BaseActivity() {
         }
 
         private fun bindPlanLog(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean, logId: String?, position: Int) {
-            val showToggleButton = bindPlanData(holder, fullDescription, isExpanded)
-            if (holder.planStepsRecyclerView.visibility == View.VISIBLE) {
+            val planData = bindPlanData(holder, fullDescription, isExpanded)
+            if (planData.isPlanConfigured) {
                 holder.descText.text = "" // Handled by RecyclerView
             } else {
                 holder.descText.text = applyMarkdownBold(fullDescription)
             }
-            setupToggleButton(holder, showToggleButton, logId, position)
+            setupToggleButton(holder, planData.showToggleButton, logId, position)
         }
 
         private fun bindDefaultLog(holder: LogViewHolder, fullDescription: String, logId: String?, position: Int) {
@@ -528,7 +523,7 @@ class TaskDetailActivity : BaseActivity() {
             return ReviewDisplayData(displayDescription, showToggleButton)
         }
 
-        private fun bindPlanData(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean): Boolean {
+        private fun bindPlanData(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean): PlanDisplayData {
             val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
             val matches = regex.findAll(fullDescription).toList()
 
@@ -559,9 +554,9 @@ class TaskDetailActivity : BaseActivity() {
                         holder.btnToggleExpand.setIconResource(R.drawable.ic_expand_less)
                     }
                 }
-                return needsToggle
+                return PlanDisplayData(isPlanConfigured = true, showToggleButton = needsToggle)
             }
-            return false
+            return PlanDisplayData(isPlanConfigured = false, showToggleButton = false)
         }
 
         private fun setupToggleButton(holder: LogViewHolder, showToggleButton: Boolean, logId: String?, position: Int) {
