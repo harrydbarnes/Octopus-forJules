@@ -1,8 +1,10 @@
 package com.jules.loader.ui
 
+import android.animation.ValueAnimator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -15,6 +17,7 @@ import com.jules.loader.util.PreferenceUtils
 
 import android.content.Intent
 import android.app.Activity
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.app.ActivityOptionsCompat
 
 class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiffCallback()) {
@@ -27,6 +30,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
     companion object {
         private const val VIEW_TYPE_ITEM = 0
         private const val VIEW_TYPE_LOADING = 1
+        private const val SCROLL_DURATION_PER_PIXEL_MS = 12L  // ms per pixel of scrollable content
     }
 
     fun setLoading(isLoading: Boolean) {
@@ -76,6 +80,8 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
         private val statusChip: Chip = itemView.findViewById(R.id.statusChip)
         private val dateChip: Chip = itemView.findViewById(R.id.dateChip)
         private val pulseView: View = itemView.findViewById(R.id.pulseView)
+        private val badgeScrollView: HorizontalScrollView = itemView.findViewById(R.id.badgeScrollView)
+        private var badgeScrollAnimator: ValueAnimator? = null
 
         fun bind(session: Session, shortenRepoNames: Boolean, shortenDates: Boolean = true, useMmDd: Boolean = false) {
             val context = itemView.context
@@ -120,6 +126,31 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
                 dateChip.visibility = View.VISIBLE
             } else {
                 dateChip.visibility = View.GONE
+            }
+
+            // Reset and re-evaluate scroll animation for source+date chips
+            badgeScrollAnimator?.cancel()
+            badgeScrollAnimator = null
+            badgeScrollView.scrollX = 0
+
+            // Token to ensure animation only starts for the current binding
+            val sessionToken = session.id
+            badgeScrollView.tag = sessionToken
+            badgeScrollView.post {
+                if (badgeScrollView.tag != sessionToken) return@post
+                val inner = badgeScrollView.getChildAt(0) ?: return@post
+                val maxScroll = inner.width - badgeScrollView.width
+                if (maxScroll > 0) {
+                    badgeScrollAnimator = ValueAnimator.ofInt(0, maxScroll, 0).apply {
+                        duration = (1500L + maxScroll * SCROLL_DURATION_PER_PIXEL_MS).coerceAtMost(5000L)
+                        repeatCount = ValueAnimator.INFINITE
+                        repeatMode = ValueAnimator.RESTART
+                        interpolator = AccelerateDecelerateInterpolator()
+                        startDelay = 800L
+                        addUpdateListener { badgeScrollView.scrollX = it.animatedValue as Int }
+                    }
+                    badgeScrollAnimator?.start()
+                }
             }
 
             itemView.transitionName = "shared_element_container_${session.id}"

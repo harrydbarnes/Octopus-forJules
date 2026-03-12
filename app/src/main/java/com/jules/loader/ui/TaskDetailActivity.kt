@@ -60,8 +60,10 @@ class TaskDetailActivity : BaseActivity() {
         const val CONST_RATING_MARKER = "### Final Rating: #Correct#"
         const val TYPE_PLAN_APPROVED = "PLAN APPROVED"
 
-        private const val BULLET_GAP_DEFAULT = 16
-        private const val BULLET_GAP_INDENTED = 48
+        private const val BULLET_GAP_DEFAULT = 8
+        private const val BULLET_INDENT_DEFAULT = 24
+        private const val BULLET_GAP_INDENTED = 8
+        private const val BULLET_INDENT_INDENTED = 48
         private const val HEADER_SUBITEM_MARGIN = 32
 
         val WORKING_TYPES = setOf("WORKING", "COMMITTING_CODE", "EXECUTING TESTS", "RUNNING TESTS")
@@ -84,10 +86,19 @@ class TaskDetailActivity : BaseActivity() {
                     }
                     trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
                         val content = trimmed.substring(2)
-                        // Indent more when under a bold bullet or section header
-                        val gapWidth = if (afterBoldBullet || inHeaderSection) BULLET_GAP_INDENTED else BULLET_GAP_DEFAULT
+                        val isIndented = afterBoldBullet || inHeaderSection
+                        val indent = if (isIndented) BULLET_INDENT_INDENTED else BULLET_INDENT_DEFAULT
+                        val gapWidth = if (isIndented) BULLET_GAP_INDENTED else BULLET_GAP_DEFAULT
                         val start = spannableString.length
                         spannableString.append(applyInlineBold(content))
+                        // LeadingMarginSpan indents the entire bullet block (including the marker)
+                        spannableString.setSpan(
+                            android.text.style.LeadingMarginSpan.Standard(indent, indent),
+                            start,
+                            spannableString.length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        // BulletSpan draws the dot within the indented block
                         spannableString.setSpan(
                             android.text.style.BulletSpan(gapWidth),
                             start,
