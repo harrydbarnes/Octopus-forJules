@@ -202,32 +202,62 @@
                 <include layout="@layout/item_session_skeleton" />
             </LinearLayout>
 
-            <!-- Error / no-signal state: Octopus game just above centre + message -->
+            <!-- Error / no-signal overlay: dims sessions below, game + message above centre -->
             <LinearLayout
                 android:id="@+id/errorContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:gravity="center"
+                android:gravity="top|center_horizontal"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
-                android:paddingBottom="100dp"
+                android:paddingTop="64dp"
+                android:paddingBottom="80dp"
+                android:background="#CC000000"
                 android:visibility="gone">
+
+                <!-- Friendly user-facing error message -->
+                <TextView
+                    android:id="@+id/errorSignalMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/error_signal_message"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textColor="#FFFFFFFF"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone" />
 
                 <com.jules.loader.ui.widget.OctopusGameView
                     android:id="@+id/octopus_error_game"
                     android:layout_width="match_parent"
-                    android:layout_height="220dp"
+                    android:layout_height="200dp"
                     android:clickable="true"
                     android:focusable="true" />
 
+                <!-- Tap-to-restart area, shown only after game over -->
+                <TextView
+                    android:id="@+id/btnRestartGame"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/game_tap_to_restart"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorPrimary"
+                    android:padding="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:visibility="gone" />
+
+                <!-- Technical error detail (subdued) -->
                 <TextView
                     android:id="@+id/errorText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
+                    android:layout_marginTop="4dp"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="#88FFFFFF"
+                    android:gravity="center" />
 
             </LinearLayout>
 

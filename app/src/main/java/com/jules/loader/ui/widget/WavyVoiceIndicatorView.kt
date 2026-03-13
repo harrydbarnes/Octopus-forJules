@@ -137,13 +137,14 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
 
     /**
      * Call when speech recognition begins.
-     * Transitions from resting ripple → listening (slightly more pronounced wave).
+     * Transitions from resting ripple → listening (taller wave, faster scroll).
+     * Cycle count is intentionally kept the same so there is no "zoom" effect.
      */
     fun startListening() {
         listeningActive = true
         settlingToFlat = false
         targetAmplitudeDp = LISTENING_AMPLITUDE_DP
-        targetCycles = LISTENING_CYCLES
+        targetCycles = IDLE_CYCLES   // keep cycles constant — only height & speed change
         ensureChoreographerRunning()
     }
 
@@ -175,6 +176,7 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // Leave enough room for listening amplitude (tallest state)
         val desiredH = ((LISTENING_AMPLITUDE_DP * 2f + STROKE_WIDTH_DP + 8f) * density).toInt()
         setMeasuredDimension(
             getDefaultSize(suggestedMinimumWidth, widthMeasureSpec),
@@ -225,12 +227,11 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
         // Resting: ~5 smooth cycles at moderate amplitude, gently scrolling left
         private const val IDLE_AMPLITUDE_DP = 5f
         private const val IDLE_CYCLES = 5f
-        // Listening: slightly more pronounced wave while speech recognition is active
-        private const val LISTENING_AMPLITUDE_DP = 7f
-        private const val LISTENING_CYCLES = 4.5f
-        // Phase speed (radians/second): gentle resting → slightly faster listening
+        // Listening: same cycle count but noticeably taller and faster — no zoom effect
+        private const val LISTENING_AMPLITUDE_DP = 15f
+        // Phase speed (radians/second): gentle resting → much faster listening
         private const val IDLE_PHASE_SPEED = 2f
-        private const val LISTENING_PHASE_SPEED = 3f
+        private const val LISTENING_PHASE_SPEED = 6f
         // Exponential smoothing
         private const val LERP_RATE_ATTACK = 0.20f
         private const val LERP_RATE_DECAY = 0.06f

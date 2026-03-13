@@ -169,6 +169,8 @@ class OctopusGameView @JvmOverloads constructor(
         octopusVelocityY = 0f
         isJumping = false
         tentaclePhase = 0f
+        // Reset octopus position to floor on every (re)start
+        octopusY = floorY - octopusSize
 
         if (!choreographerRunning) {
             choreographerRunning = true
@@ -220,11 +222,8 @@ class OctopusGameView @JvmOverloads constructor(
     }
 
     fun jump() {
-        if (gameOver) {
-            startGame()
-            return
-        }
-        if (!isJumping && gameRunning) {
+        // Only jump when the game is actually running (not game-over)
+        if (!isJumping && gameRunning && !gameOver) {
             isJumping = true
             octopusVelocityY = jumpVelocity
         }
@@ -374,7 +373,7 @@ class OctopusGameView @JvmOverloads constructor(
                 style = Paint.Style.FILL
             }
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("Game Over! Tap to Restart", w / 2f, h / 2f, gameOverPaint)
+            canvas.drawText("Game Over", w / 2f, h / 2f, gameOverPaint)
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })

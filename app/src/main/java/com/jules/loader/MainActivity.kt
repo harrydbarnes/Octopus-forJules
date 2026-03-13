@@ -1,6 +1,8 @@
 package com.jules.loader
 
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
@@ -29,6 +31,8 @@ import com.jules.loader.ui.OnboardingActivity
 import com.jules.loader.ui.SessionAdapter
 import com.jules.loader.util.DateUtils
 import com.jules.loader.util.PreferenceUtils
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
@@ -50,6 +54,7 @@ class MainActivity : BaseActivity() {
     private var nextPageToken: String? = null
     private var isLoadingMore = false
     private var shimmerAnimators: List<ObjectAnimator> = emptyList()
+    private var retryJob: Job? = null
 
     companion object {
         private const val KEY_SESSIONS = "key_sessions"
@@ -206,7 +211,7 @@ class MainActivity : BaseActivity() {
                     
                     binding.sessionsRecyclerView.visibility = View.VISIBLE
                     binding.skeletonLayout.visibility = View.GONE
-                    binding.errorText.visibility = View.GONE
+                    binding.errorContainer.visibility = View.GONE
                     applyFilters()
                 } else {
                     loadSessions()
@@ -233,6 +238,11 @@ class MainActivity : BaseActivity() {
             val displayRepo = PreferenceUtils.getDisplayRepoName(repo, shortenRepoNames)
             binding.chipRepo.text = displayRepo
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        retryJob?.cancel()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -557,6 +567,8 @@ class MainActivity : BaseActivity() {
     }
 
     private fun loadSessions(forceRefresh: Boolean = false) {
+        retryJob?.cancel()
+        retryJob = null
         val isFirstLoad = !forceRefresh && !repository.hasCachedSessions()
         if (isFirstLoad) {
             binding.skeletonLayout.visibility = View.VISIBLE
@@ -574,12 +586,14 @@ class MainActivity : BaseActivity() {
 
                 if (allSessions.isEmpty()) {
                     binding.octopusErrorGame.visibility = View.GONE
+                    binding.errorSignalMessage.visibility = View.GONE
+                    binding.btnRestartGame.visibility = View.GONE
                     binding.errorText.text = getString(R.string.no_sessions)
                     binding.errorContainer.visibility = View.VISIBLE
+                    binding.sessionsRecyclerView.visibility = View.GONE
                     adapter.submitList(emptyList())
                 } else {
-                    binding.errorContainer.visibility = View.GONE
-                    binding.octopusErrorGame.stopGame()
+                    hideErrorOverlay()
                     binding.sessionsRecyclerView.visibility = View.VISIBLE
                     applyFilters()
                     if (isFirstLoad) {
@@ -589,9 +603,12 @@ class MainActivity : BaseActivity() {
             } catch (e: java.io.IOException) {
                 showErrorWithGame(getString(R.string.error_loading_sessions, e.localizedMessage))
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
+                // Poor signal: auto-retry every 10s if network is still available
+                scheduleAutoRetry()
             } catch (e: retrofit2.HttpException) {
                 showErrorWithGame(getString(R.string.error_loading_sessions, e.message()))
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
+                // Server error with network: don't auto-retry (not a signal issue)
             } finally {
                 binding.skeletonLayout.visibility = View.GONE
                 stopSkeletonShimmer()
@@ -601,11 +618,43 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    private fun scheduleAutoRetry() {
+        // Only auto-retry when the device actually has a network connection.
+        // If not (airplane mode / data off / no WiFi), skip — user must pull-to-refresh.
+        if (!isNetworkAvailable()) return
+        retryJob?.cancel()
+        retryJob = lifecycleScope.launch {
+            delay(10_000L)
+            if (isNetworkAvailable()) {
+                loadSessions(forceRefresh = true)
+            }
+            // If network disappeared during the delay, do nothing (user pull-to-refresh)
+        }
+    }
+
+    /** Returns true when the device has an active network (even if signal is poor). */
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun hideErrorOverlay() {
+        binding.errorContainer.visibility = View.GONE
+        binding.octopusErrorGame.stopGame()
+        binding.btnRestartGame.visibility = View.GONE
+    }
+
     private fun showErrorWithGame(message: String) {
         binding.errorText.text = message
+        binding.errorSignalMessage.visibility = View.VISIBLE
         binding.octopusErrorGame.visibility = View.VISIBLE
+        binding.btnRestartGame.visibility = View.GONE
         binding.errorContainer.visibility = View.VISIBLE
-        // Load high score and start game once the view is laid out
+        // Sessions RecyclerView stays visible behind the dim overlay when sessions exist
+        binding.sessionsRecyclerView.visibility = View.VISIBLE
+
         val gameView = binding.octopusErrorGame
         gameView.highScore = PreferenceUtils.getOctopusHighScore(this)
         gameView.onGameOver = {
@@ -613,7 +662,17 @@ class MainActivity : BaseActivity() {
             if (hs > PreferenceUtils.getOctopusHighScore(this)) {
                 PreferenceUtils.setOctopusHighScore(this, hs)
             }
+            // Show the "tap to restart" area below the game
+            runOnUiThread {
+                binding.btnRestartGame.visibility = View.VISIBLE
+            }
         }
+
+        binding.btnRestartGame.setOnClickListener {
+            binding.btnRestartGame.visibility = View.GONE
+            gameView.startGame()
+        }
+
         gameView.post {
             gameView.startGame()
         }
