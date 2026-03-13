@@ -16,14 +16,13 @@ import kotlin.math.sin
  * A Material 3 Expressive-style wavy linear voice indicator.
  *
  * Behaviour:
- *  - Initially renders a **flat** horizontal line with no animation.
- *  - Call [startListening] when speech recognition begins; the Choreographer-driven
- *    render loop starts and the wave smoothly grows from the audio input level.
- *  - [setAmplitude] drives the target wave height from mic input ([0,1]).
- *    The wave phase only scrolls when active audio is detected; it freezes
- *    otherwise, leaving a subtle static wave.
- *  - Amplitude uses fast-attack / slow-decay exponential smoothing for natural,
- *    smooth transitions between audio levels.
+ *  - Idle: many fine cycles ([IDLE_CYCLES]) with tiny amplitude, gently scrolling
+ *    at [IDLE_PHASE_SPEED]. The Choreographer loop runs whenever the view is attached.
+ *  - On audio ([setAmplitude]): smoothly morphs to fewer, taller waves proportional
+ *    to mic volume. Both amplitude and cycle-count lerp with fast-attack / slow-decay
+ *    exponential smoothing for natural transitions.
+ *  - After [stopListening]: wave returns to idle state.
+ *  - Phase speed scales with amplitude so active audio feels more energetic.
  */
 class WavyVoiceIndicatorView @JvmOverloads constructor(
     context: Context,
@@ -41,13 +40,15 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
 
     private val path = Path()
 
-    // Smoothly interpolated amplitude currently being rendered (dp)
-    private var currentAmplitudeDp = 0f
+    // Amplitude: how tall the wave crests are (dp)
+    private var currentAmplitudeDp = IDLE_AMPLITUDE_DP
+    private var targetAmplitudeDp = IDLE_AMPLITUDE_DP
 
-    // Target amplitude driven by mic input (dp); 0 = flat, IDLE = subtle wave
-    private var targetAmplitudeDp = 0f
+    // Cycles: how many full sine cycles span the view width
+    private var currentCycles = IDLE_CYCLES
+    private var targetCycles = IDLE_CYCLES
 
-    // Phase offset for the wave scroll (radians)
+    // Phase offset for horizontal wave scroll (radians)
     private var phase = 0f
 
     // Whether speech recognition is actively in progress
@@ -59,39 +60,32 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
 
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
-            val dtMs = if (lastFrameTimeNanos == 0L) {
-                FRAME_TIME_MS
-            } else {
-                ((frameTimeNanos - lastFrameTimeNanos) / 1_000_000f).coerceIn(1f, 50f)
-            }
+            val dtMs = if (lastFrameTimeNanos == 0L) FRAME_TIME_MS
+                       else ((frameTimeNanos - lastFrameTimeNanos) / 1_000_000f).coerceIn(1f, 50f)
             lastFrameTimeNanos = frameTimeNanos
             val dt = dtMs / 1000f // seconds
 
-            // Exponential smoothing: fast attack, slow decay for a natural feel
-            val diff = targetAmplitudeDp - currentAmplitudeDp
-            val base = if (diff > 0f) LERP_BASE_ATTACK else LERP_BASE_DECAY
-            // Time-normalised blend factor so speed is frame-rate independent
-            val alpha = 1f - base.pow(dt * TARGET_FPS)
-            currentAmplitudeDp += diff * alpha
+            // --- Amplitude smoothing (fast attack, slow decay) ---
+            val ampDiff = targetAmplitudeDp - currentAmplitudeDp
+            val ampBase = if (ampDiff > 0f) LERP_BASE_ATTACK else LERP_BASE_DECAY
+            currentAmplitudeDp += ampDiff * (1f - ampBase.pow(dt * TARGET_FPS))
+            if (abs(ampDiff) < SNAP_THRESHOLD_DP) currentAmplitudeDp = targetAmplitudeDp
 
-            // Snap to target when close enough to avoid infinite approach
-            if (abs(diff) < SNAP_THRESHOLD_DP) currentAmplitudeDp = targetAmplitudeDp
+            // --- Cycle-count smoothing (same rates, direction-aware) ---
+            val cyclesDiff = targetCycles - currentCycles
+            // Decreasing cycles (morphing to active) = attack; increasing (returning idle) = decay
+            val cyclesBase = if (cyclesDiff < 0f) LERP_BASE_ATTACK else LERP_BASE_DECAY
+            currentCycles += cyclesDiff * (1f - cyclesBase.pow(dt * TARGET_FPS))
+            if (abs(cyclesDiff) < 0.02f) currentCycles = targetCycles
 
-            // Phase scrolls only when active audio is present; freezes when idle
-            if (targetAmplitudeDp > IDLE_AMPLITUDE_DP + ACTIVE_THRESHOLD_DP) {
-                phase = (phase + PHASE_SPEED_RADS_PER_SEC * dt) % TWO_PI
-            }
+            // Phase speed scales from idle to active based on current amplitude
+            val morphFraction = ((currentAmplitudeDp - IDLE_AMPLITUDE_DP)
+                .coerceAtLeast(0f) / (ACTIVE_AMPLITUDE_DP - IDLE_AMPLITUDE_DP)).coerceAtMost(1f)
+            val phaseSpeed = IDLE_PHASE_SPEED + morphFraction * (ACTIVE_PHASE_SPEED - IDLE_PHASE_SPEED)
+            phase = (phase + phaseSpeed * dt) % TWO_PI
 
             invalidate()
-
-            // Keep looping while listening or while amplitude hasn't fully settled
-            val settled = abs(currentAmplitudeDp - targetAmplitudeDp) < SNAP_THRESHOLD_DP
-            if (listeningActive || !settled) {
-                Choreographer.getInstance().postFrameCallback(this)
-            } else {
-                choreographerRunning = false
-                lastFrameTimeNanos = 0L
-            }
+            Choreographer.getInstance().postFrameCallback(this)
         }
     }
 
@@ -103,55 +97,49 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
         paint.color = typedValue.data
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (!choreographerRunning) {
+            choreographerRunning = true
+            Choreographer.getInstance().postFrameCallback(frameCallback)
+        }
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        stopChoreographer()
+        Choreographer.getInstance().removeFrameCallback(frameCallback)
+        choreographerRunning = false
+        lastFrameTimeNanos = 0L
     }
 
-    /**
-     * Call when speech recognition begins. Starts the animation loop and
-     * transitions the line from flat to a subtle idle wave.
-     */
+    /** Call when speech recognition begins. */
     fun startListening() {
         listeningActive = true
-        targetAmplitudeDp = IDLE_AMPLITUDE_DP
-        if (!choreographerRunning) postChoreographerFrame()
     }
 
-    /**
-     * Call when speech recognition ends. Lets the wave settle to the idle
-     * position before the Choreographer loop stops itself.
-     */
+    /** Call when speech recognition ends; wave returns to idle state. */
     fun stopListening() {
         listeningActive = false
         targetAmplitudeDp = IDLE_AMPLITUDE_DP
+        targetCycles = IDLE_CYCLES
     }
 
     /**
-     * Drive the wave amplitude from normalised microphone input.
+     * Drive the wave shape from normalised microphone input.
      *
      * @param normalizedLevel Value in [0.0, 1.0]: 0 = silence, 1 = peak input.
      *                        Ignored before [startListening] is called.
      */
     fun setAmplitude(normalizedLevel: Float) {
         if (!listeningActive) return
-        val clamped = normalizedLevel.coerceIn(0f, 1f)
-        targetAmplitudeDp = IDLE_AMPLITUDE_DP + clamped * (MAX_AMPLITUDE_DP - IDLE_AMPLITUDE_DP)
-    }
-
-    private fun postChoreographerFrame() {
-        choreographerRunning = true
-        Choreographer.getInstance().postFrameCallback(frameCallback)
-    }
-
-    private fun stopChoreographer() {
-        Choreographer.getInstance().removeFrameCallback(frameCallback)
-        choreographerRunning = false
-        lastFrameTimeNanos = 0L
+        val morph = normalizedLevel.coerceIn(0f, 1f)
+        targetAmplitudeDp = IDLE_AMPLITUDE_DP + morph * (ACTIVE_AMPLITUDE_DP - IDLE_AMPLITUDE_DP)
+        // More amplitude = fewer, wider cycles (IDLE_CYCLES → ACTIVE_CYCLES)
+        targetCycles = IDLE_CYCLES + morph * (ACTIVE_CYCLES - IDLE_CYCLES)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val desiredH = ((MAX_AMPLITUDE_DP * 2f + STROKE_WIDTH_DP + 8f) * density).toInt()
+        val desiredH = ((ACTIVE_AMPLITUDE_DP * 2f + STROKE_WIDTH_DP + 8f) * density).toInt()
         setMeasuredDimension(
             getDefaultSize(suggestedMinimumWidth, widthMeasureSpec),
             resolveSize(desiredH, heightMeasureSpec)
@@ -174,11 +162,11 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
         val lineWidth = endX - startX
 
         val amplitudePx = currentAmplitudeDp * density
-        // 3 full sine cycles across the indicator width
-        val waveLengthPx = lineWidth / 3f
+        val waveLengthPx = lineWidth / currentCycles
 
         path.reset()
-        val steps = 120
+        // More steps for fine idle ripples; 160 is smooth at all cycle counts
+        val steps = 160
         for (i in 0..steps) {
             val fraction = i.toFloat() / steps
             val x = startX + fraction * lineWidth
@@ -192,17 +180,18 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
 
     companion object {
         private const val STROKE_WIDTH_DP = 6f
-        // Subtle amplitude for the resting wave once listening has started
-        private const val IDLE_AMPLITUDE_DP = 2f
-        private const val MAX_AMPLITUDE_DP = 18f
-        // Phase scrolling activates when target exceeds idle by this margin (dp)
-        private const val ACTIVE_THRESHOLD_DP = 1f
-        // Wave phase speed when audio is active (radians per second)
-        private const val PHASE_SPEED_RADS_PER_SEC = 4.5f
-        // Exponential smoothing rates (per frame at TARGET_FPS)
-        private const val LERP_RATE_ATTACK = 0.25f  // fast response to loud sounds
-        private const val LERP_RATE_DECAY = 0.08f   // slow natural decay
-        // Pre-computed bases for the per-frame blend factor (1 - rate)
+        // Idle: many fine ripples with tiny height, always gently scrolling
+        private const val IDLE_AMPLITUDE_DP = 1.5f
+        private const val IDLE_CYCLES = 7f
+        // Active: fewer, much taller waves when audio is detected
+        private const val ACTIVE_AMPLITUDE_DP = 20f
+        private const val ACTIVE_CYCLES = 2.5f
+        // Phase scroll speed (radians/second): slow idle, faster during active audio
+        private const val IDLE_PHASE_SPEED = 2.5f
+        private const val ACTIVE_PHASE_SPEED = 7f
+        // Exponential smoothing: fast attack (loud sounds), slow decay (settling)
+        private const val LERP_RATE_ATTACK = 0.25f
+        private const val LERP_RATE_DECAY = 0.08f
         private const val LERP_BASE_ATTACK = 1f - LERP_RATE_ATTACK
         private const val LERP_BASE_DECAY = 1f - LERP_RATE_DECAY
         private const val TARGET_FPS = 60f

@@ -54,6 +54,8 @@ class CreateTaskActivity : BaseActivity() {
         private const val MAX_DB_LEVEL = 10f
         private const val DB_LEVEL_RANGE = MAX_DB_LEVEL - MIN_DB_LEVEL
         private const val ANIMATION_DURATION_MS = 200L
+        // Delay after results arrive so the wave settles before the sheet dismisses
+        private const val DISMISS_DELAY_MS = 750L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -452,7 +454,8 @@ class CreateTaskActivity : BaseActivity() {
                     binding.taskInput.setText(newText)
                     binding.taskInput.setSelection(newText.length)
                 }
-                dialog.dismiss()
+                // Short delay so the wave can settle back to idle before the sheet dismisses
+                wavyIndicator.postDelayed({ dialog.dismiss() }, DISMISS_DELAY_MS)
             }
             override fun onPartialResults(partialResults: Bundle?) {
                 val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
