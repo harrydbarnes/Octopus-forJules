@@ -56,8 +56,6 @@ class CreateTaskActivity : BaseActivity() {
         private const val ANIMATION_DURATION_MS = 200L
         // Interval for the "Listening." → ".." → "..." ellipsis animation
         private const val ELLIPSIS_INTERVAL_MS = 500L
-        // Delay before dismissing game dialog after results
-        private const val DISMISS_DELAY_GAME_MS = 1200L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -394,10 +392,7 @@ class CreateTaskActivity : BaseActivity() {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_AUDIO)
             } else {
-                when (PreferenceUtils.getVoiceDictationStyle(this)) {
-                    PreferenceUtils.VOICE_STYLE_OCTOPUS_GAME -> showVoiceGameDialog()
-                    else -> showVoiceDialog()
-                }
+                showVoiceDialog()
             }
         }
     }
@@ -499,136 +494,6 @@ class CreateTaskActivity : BaseActivity() {
 
         speechRecognizer.startListening(speechRecognizerIntent)
         dialog.show()
-    }
-
-    private fun showVoiceGameDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_voice_input_game, null)
-        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
-        dialog.setContentView(dialogView)
-
-        val gameView = dialogView.findViewById<com.jules.loader.ui.widget.OctopusGameView>(R.id.octopus_game_view)
-        val tvTranscription = dialogView.findViewById<android.widget.TextView>(R.id.tv_transcription)
-        val tvStatus = dialogView.findViewById<android.widget.TextView>(R.id.tv_listening_status)
-        val btnCancel = dialogView.findViewById<android.view.View>(R.id.btn_cancel_voice)
-        val btnDragDismiss = dialogView.findViewById<android.view.View>(R.id.btn_drag_dismiss)
-
-        // Load high score
-        gameView.highScore = PreferenceUtils.getOctopusHighScore(this)
-
-        // Track previously counted words so we only add new ones
-        var lastWordCount = 0
-
-        // Animated ellipsis
-        var dotCount = 1
-        val ellipsisRunnable = object : Runnable {
-            override fun run() {
-                tvStatus.text = "Listening" + ".".repeat(dotCount)
-                dotCount = (dotCount % 3) + 1
-                tvStatus.postDelayed(this, ELLIPSIS_INTERVAL_MS)
-            }
-        }
-
-        // Save high score on game over
-        gameView.onGameOver = {
-            val hs = gameView.highScore
-            if (hs > PreferenceUtils.getOctopusHighScore(this)) {
-                PreferenceUtils.setOctopusHighScore(this, hs)
-            }
-        }
-
-        btnCancel.setOnClickListener {
-            tvStatus.removeCallbacks(ellipsisRunnable)
-            saveGameHighScore(gameView)
-            speechRecognizer.stopListening()
-            dialog.dismiss()
-        }
-
-        btnDragDismiss.setOnClickListener {
-            tvStatus.removeCallbacks(ellipsisRunnable)
-            saveGameHighScore(gameView)
-            dialog.dismiss()
-        }
-
-        dialog.setOnDismissListener {
-            tvStatus.removeCallbacks(ellipsisRunnable)
-            saveGameHighScore(gameView)
-            gameView.stopGame()
-            speechRecognizer.stopListening()
-            isListening = false
-        }
-
-        speechRecognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {}
-            override fun onBeginningOfSpeech() {
-                isListening = true
-                originalTextBeforeSpeech = binding.taskInput.text?.toString() ?: ""
-                dotCount = 1
-                tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Listening."
-                tvStatus.postDelayed(ellipsisRunnable, ELLIPSIS_INTERVAL_MS)
-                gameView.startGame()
-            }
-            override fun onRmsChanged(rmsdB: Float) {
-                // No wave indicator in game mode — the game itself is the visualization
-            }
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {
-                tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Processing..."
-                gameView.stopGame()
-            }
-            override fun onError(error: Int) {
-                isListening = false
-                tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Error"
-                saveGameHighScore(gameView)
-                dialog.dismiss()
-            }
-            override fun onResults(results: Bundle?) {
-                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                if (!matches.isNullOrEmpty()) {
-                    val spokenText = matches[0]
-                    val newText = if (originalTextBeforeSpeech.isBlank()) spokenText else "$originalTextBeforeSpeech $spokenText"
-                    binding.taskInput.setText(newText)
-                    binding.taskInput.setSelection(newText.length)
-
-                    // Final word count — add any words not yet counted by partial results
-                    val finalWordCount = spokenText.trim().split("\\s+".toRegex()).size
-                    val remaining = finalWordCount - lastWordCount
-                    if (remaining > 0) {
-                        gameView.addWords(remaining)
-                    }
-                }
-                tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Done"
-                saveGameHighScore(gameView)
-                gameView.postDelayed({ dialog.dismiss() }, DISMISS_DELAY_GAME_MS)
-            }
-            override fun onPartialResults(partialResults: Bundle?) {
-                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                if (!matches.isNullOrEmpty()) {
-                    tvTranscription.text = matches[0]
-                    // Add words as they come in for real-time score
-                    val currentWordCount = matches[0].trim().split("\\s+".toRegex()).size
-                    val newWords = currentWordCount - lastWordCount
-                    if (newWords > 0) {
-                        gameView.addWords(newWords)
-                        lastWordCount = currentWordCount
-                    }
-                }
-            }
-            override fun onEvent(eventType: Int, params: Bundle?) {}
-        })
-
-        speechRecognizer.startListening(speechRecognizerIntent)
-        dialog.show()
-    }
-
-    private fun saveGameHighScore(gameView: com.jules.loader.ui.widget.OctopusGameView) {
-        val hs = gameView.highScore
-        if (hs > PreferenceUtils.getOctopusHighScore(this)) {
-            PreferenceUtils.setOctopusHighScore(this, hs)
-        }
     }
 
 }

@@ -13,7 +13,6 @@ import android.util.TypedValue
 import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
-import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -33,10 +32,7 @@ class OctopusGameView @JvmOverloads constructor(
 
     // ── Public API ──────────────────────────────────────────────────────
 
-    /** Current score (word count). Set externally. */
-    var score: Int = 0
-
-    /** High score. Set externally from preferences on init. */
+    /** Best survival time in seconds. Set externally from preferences on init. */
     var highScore: Int = 0
 
     /** Called when the game ends (octopus collides with obstacle). */
@@ -44,6 +40,10 @@ class OctopusGameView @JvmOverloads constructor(
 
     private var gameRunning = false
     private var gameOver = false
+
+    // ── Timer ────────────────────────────────────────────────────────────
+
+    private var elapsedTime = 0f  // seconds elapsed since game started
 
     // ── Dimensions ──────────────────────────────────────────────────────
 
@@ -154,9 +154,14 @@ class OctopusGameView @JvmOverloads constructor(
     // ── Lifecycle ───────────────────────────────────────────────────────
 
     fun startGame() {
+        // Defer until the view has been laid out so width/height are valid
+        if (width == 0 || height == 0) {
+            post { startGame() }
+            return
+        }
         gameRunning = true
         gameOver = false
-        score = 0
+        elapsedTime = 0f
         obstacles.clear()
         bubbles.clear()
         scrollOffset = 0f
@@ -174,11 +179,6 @@ class OctopusGameView @JvmOverloads constructor(
 
     fun stopGame() {
         gameRunning = false
-    }
-
-    fun addWords(count: Int) {
-        score += count
-        if (score > highScore) highScore = score
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -233,7 +233,11 @@ class OctopusGameView @JvmOverloads constructor(
     // ── Update ──────────────────────────────────────────────────────────
 
     private fun updateGame(dt: Float) {
-        val speed = scrollSpeed * (1f + score * 0.01f).coerceAtMost(2.5f)
+        elapsedTime += dt
+        val elapsedSec = elapsedTime.toInt()
+        if (elapsedSec > highScore) highScore = elapsedSec
+
+        val speed = scrollSpeed * (1f + elapsedTime * 0.02f).coerceAtMost(2.5f)
         scrollOffset += speed * dt
         tentaclePhase += 8f * dt
 
@@ -313,6 +317,11 @@ class OctopusGameView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
 
+        // Clip to rounded corners
+        val clipPath = Path()
+        clipPath.addRoundRect(RectF(0f, 0f, w, h), CORNER_RADIUS_DP * dp, CORNER_RADIUS_DP * dp, Path.Direction.CW)
+        canvas.clipPath(clipPath)
+
         // Ocean background
         canvas.drawRect(0f, 0f, w, h, oceanPaint)
 
@@ -341,7 +350,7 @@ class OctopusGameView @JvmOverloads constructor(
             canvas.drawCircle(b.x, b.y, b.radius, bubblePaint)
         }
 
-        // Obstacles (reefs/corals)
+        // Obstacles
         for (obs in obstacles) {
             drawObstacle(canvas, obs)
         }
@@ -349,13 +358,14 @@ class OctopusGameView @JvmOverloads constructor(
         // Octopus
         drawOctopus(canvas)
 
-        // Score display
-        val scoreText = "Words: $score"
-        canvas.drawText(scoreText, 16f * dp, 28f * dp, scorePaint)
+        // Timer top-left
+        val timerText = formatTime(elapsedTime)
+        canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
 
-        val hsText = "Best: $highScore"
-        val hsWidth = scorePaint.measureText(hsText)
-        canvas.drawText(hsText, w - hsWidth - 16f * dp, 28f * dp, scorePaint)
+        // Best time top-right
+        val bestText = "Best: ${formatTime(highScore.toFloat())}"
+        val bestWidth = scorePaint.measureText(bestText)
+        canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
 
         // Game over overlay
         if (gameOver) {
@@ -365,11 +375,18 @@ class OctopusGameView @JvmOverloads constructor(
             }
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
             canvas.drawText("Game Over! Tap to Restart", w / 2f, h / 2f, gameOverPaint)
-            canvas.drawText("Score: $score words", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
+            canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })
             scorePaint.textAlign = Paint.Align.LEFT // reset
         }
+    }
+
+    private fun formatTime(seconds: Float): String {
+        val totalSec = seconds.toInt()
+        val mins = totalSec / 60
+        val secs = totalSec % 60
+        return "%02d:%02d".format(mins, secs)
     }
 
     private fun drawOctopus(canvas: Canvas) {
@@ -510,4 +527,8 @@ class OctopusGameView @JvmOverloads constructor(
         val radius: Float,
         val speed: Float
     )
+
+    companion object {
+        private const val CORNER_RADIUS_DP = 16f
+    }
 }

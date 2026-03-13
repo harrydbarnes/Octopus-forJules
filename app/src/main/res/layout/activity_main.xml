@@ -202,13 +202,34 @@
                 <include layout="@layout/item_session_skeleton" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/errorText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                android:text="Failed to load sessions" />
+            <!-- Error / no-signal state: Octopus game just above centre + message -->
+            <LinearLayout
+                android:id="@+id/errorContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingBottom="100dp"
+                android:visibility="gone">
+
+                <com.jules.loader.ui.widget.OctopusGameView
+                    android:id="@+id/octopus_error_game"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/errorText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+            </LinearLayout>
 
         </FrameLayout>
 

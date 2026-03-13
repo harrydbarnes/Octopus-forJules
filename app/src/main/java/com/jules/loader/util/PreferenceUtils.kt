@@ -11,11 +11,7 @@ object PreferenceUtils {
     private const val KEY_RAW_LOGS = "raw_logs"
     private const val KEY_SHORTEN_DATES = "shorten_dates"
     private const val KEY_DATE_FORMAT_MMDD = "date_format_mmdd"
-    private const val KEY_VOICE_STYLE = "voice_dictation_style"
     private const val KEY_OCTOPUS_HIGH_SCORE = "octopus_game_high_score"
-
-    const val VOICE_STYLE_STANDARD = "standard"
-    const val VOICE_STYLE_OCTOPUS_GAME = "octopus_game"
 
     private fun getPrefs(context: Context) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -77,14 +73,6 @@ object PreferenceUtils {
 
     fun setDateFormatMMDD(context: Context, enabled: Boolean) {
         getPrefs(context).edit { putBoolean(KEY_DATE_FORMAT_MMDD, enabled) }
-    }
-
-    fun getVoiceDictationStyle(context: Context): String {
-        return getPrefs(context).getString(KEY_VOICE_STYLE, VOICE_STYLE_STANDARD) ?: VOICE_STYLE_STANDARD
-    }
-
-    fun setVoiceDictationStyle(context: Context, style: String) {
-        getPrefs(context).edit { putString(KEY_VOICE_STYLE, style) }
     }
 
     fun getOctopusHighScore(context: Context): Int {

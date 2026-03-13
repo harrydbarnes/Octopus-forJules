@@ -561,7 +561,7 @@ class MainActivity : BaseActivity() {
         if (isFirstLoad) {
             binding.skeletonLayout.visibility = View.VISIBLE
             startSkeletonShimmer()
-            binding.errorText.visibility = View.GONE
+            binding.errorContainer.visibility = View.GONE
             binding.sessionsRecyclerView.visibility = View.GONE
         }
 
@@ -573,11 +573,13 @@ class MainActivity : BaseActivity() {
                 nextPageToken = response.nextPageToken
 
                 if (allSessions.isEmpty()) {
+                    binding.octopusErrorGame.visibility = View.GONE
                     binding.errorText.text = getString(R.string.no_sessions)
-                    binding.errorText.visibility = View.VISIBLE
+                    binding.errorContainer.visibility = View.VISIBLE
                     adapter.submitList(emptyList())
                 } else {
-                    binding.errorText.visibility = View.GONE
+                    binding.errorContainer.visibility = View.GONE
+                    binding.octopusErrorGame.stopGame()
                     binding.sessionsRecyclerView.visibility = View.VISIBLE
                     applyFilters()
                     if (isFirstLoad) {
@@ -585,12 +587,10 @@ class MainActivity : BaseActivity() {
                     }
                 }
             } catch (e: java.io.IOException) {
-                binding.errorText.text = getString(R.string.error_loading_sessions, e.localizedMessage)
-                binding.errorText.visibility = View.VISIBLE
+                showErrorWithGame(getString(R.string.error_loading_sessions, e.localizedMessage))
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
             } catch (e: retrofit2.HttpException) {
-                binding.errorText.text = getString(R.string.error_loading_sessions, e.message())
-                binding.errorText.visibility = View.VISIBLE
+                showErrorWithGame(getString(R.string.error_loading_sessions, e.message()))
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
             } finally {
                 binding.skeletonLayout.visibility = View.GONE
@@ -598,6 +598,24 @@ class MainActivity : BaseActivity() {
                 binding.swipeRefresh.isRefreshing = false
                 isLoadingMore = false
             }
+        }
+    }
+
+    private fun showErrorWithGame(message: String) {
+        binding.errorText.text = message
+        binding.octopusErrorGame.visibility = View.VISIBLE
+        binding.errorContainer.visibility = View.VISIBLE
+        // Load high score and start game once the view is laid out
+        val gameView = binding.octopusErrorGame
+        gameView.highScore = PreferenceUtils.getOctopusHighScore(this)
+        gameView.onGameOver = {
+            val hs = gameView.highScore
+            if (hs > PreferenceUtils.getOctopusHighScore(this)) {
+                PreferenceUtils.setOctopusHighScore(this, hs)
+            }
+        }
+        gameView.post {
+            gameView.startGame()
         }
     }
 
