@@ -55,6 +55,42 @@
                     android:textColor="?attr/colorOnSurface"
                     android:checked="true" />
 
+                <!-- Voice Dictation Style: Standard / Octopus Game -->
+                <TextView
+                    android:id="@+id/label_voice_style"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_voice_dictation_style"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginTop="8dp" />
+
+                <RadioGroup
+                    android:id="@+id/radio_group_voice_style"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp">
+
+                    <RadioButton
+                        android:id="@+id/radio_voice_standard"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/voice_style_standard"
+                        android:textColor="?attr/colorOnSurface" />
+
+                    <RadioButton
+                        android:id="@+id/radio_voice_octopus_game"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/voice_style_octopus_game"
+                        android:textColor="?attr/colorOnSurface" />
+
+                </RadioGroup>
+
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_prompt_gallery"
                     android:layout_width="match_parent"

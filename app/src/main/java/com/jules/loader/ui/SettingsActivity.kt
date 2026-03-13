@@ -168,6 +168,28 @@ class SettingsActivity : BaseActivity() {
         binding.switchVoiceTyping.isChecked = PreferenceUtils.isVoiceTypingEnabled(this)
         binding.switchVoiceTyping.setOnCheckedChangeListener { _, isChecked ->
             PreferenceUtils.setVoiceTypingEnabled(this, isChecked)
+            // Show/hide voice style options based on voice typing toggle
+            val styleVisibility = if (isChecked) View.VISIBLE else View.GONE
+            binding.labelVoiceStyle.visibility = styleVisibility
+            binding.radioGroupVoiceStyle.visibility = styleVisibility
+        }
+
+        // Voice dictation style (Standard / Octopus Game)
+        val voiceStyleEnabled = PreferenceUtils.isVoiceTypingEnabled(this)
+        val styleVisibility = if (voiceStyleEnabled) View.VISIBLE else View.GONE
+        binding.labelVoiceStyle.visibility = styleVisibility
+        binding.radioGroupVoiceStyle.visibility = styleVisibility
+
+        when (PreferenceUtils.getVoiceDictationStyle(this)) {
+            PreferenceUtils.VOICE_STYLE_OCTOPUS_GAME -> binding.radioVoiceOctopusGame.isChecked = true
+            else -> binding.radioVoiceStandard.isChecked = true
+        }
+        binding.radioGroupVoiceStyle.setOnCheckedChangeListener { _, checkedId ->
+            val style = when (checkedId) {
+                R.id.radio_voice_octopus_game -> PreferenceUtils.VOICE_STYLE_OCTOPUS_GAME
+                else -> PreferenceUtils.VOICE_STYLE_STANDARD
+            }
+            PreferenceUtils.setVoiceDictationStyle(this, style)
         }
 
         binding.switchPromptGallery.isChecked = PreferenceUtils.isPromptGalleryEnabled(this)
