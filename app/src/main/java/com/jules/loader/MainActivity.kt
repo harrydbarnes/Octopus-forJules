@@ -1,9 +1,15 @@
 package com.jules.loader
 
 import android.content.Intent
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.animation.ValueAnimator
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -55,6 +61,18 @@ class MainActivity : BaseActivity() {
     private var isLoadingMore = false
     private var shimmerAnimators: List<ObjectAnimator> = emptyList()
     private var retryJob: Job? = null
+
+    /** Triggers an immediate reload when the device regains network access. */
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            runOnUiThread {
+                if (binding.errorContainer.visibility == View.VISIBLE) {
+                    retryJob?.cancel()
+                    loadSessions(forceRefresh = true)
+                }
+            }
+        }
+    }
 
     companion object {
         private const val KEY_SESSIONS = "key_sessions"
@@ -237,6 +255,24 @@ class MainActivity : BaseActivity() {
         selectedRepo?.let { repo ->
             val displayRepo = PreferenceUtils.getDisplayRepoName(repo, shortenRepoNames)
             binding.chipRepo.text = displayRepo
+        }
+
+        // Register network-available listener so we reload the moment signal returns
+        try {
+            val cm = getSystemService(ConnectivityManager::class.java)
+            cm?.registerNetworkCallback(NetworkRequest.Builder().build(), networkCallback)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Could not register network callback", e)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            val cm = getSystemService(ConnectivityManager::class.java)
+            cm?.unregisterNetworkCallback(networkCallback)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Could not unregister network callback", e)
         }
     }
 
@@ -577,6 +613,11 @@ class MainActivity : BaseActivity() {
             binding.sessionsRecyclerView.visibility = View.GONE
         }
 
+        // Show reload spinner inside the game overlay if it's already on screen
+        if (forceRefresh && binding.errorContainer.visibility == View.VISIBLE) {
+            binding.reloadingIndicator.visibility = View.VISIBLE
+        }
+
         lifecycleScope.launch {
             try {
                 isLoadingMore = true
@@ -587,7 +628,14 @@ class MainActivity : BaseActivity() {
                 if (allSessions.isEmpty()) {
                     binding.octopusErrorGame.visibility = View.GONE
                     binding.errorSignalMessage.visibility = View.GONE
-                    binding.btnRestartGame.visibility = View.GONE
+                    binding.gameBottomArea.visibility = View.GONE
+                    binding.errorContainer.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    // Use theme's on-surface-variant colour so text is readable on the plain background
+                    val tv = android.util.TypedValue()
+                    if (theme.resolveAttribute(
+                            com.google.android.material.R.attr.colorOnSurfaceVariant, tv, true)) {
+                        binding.errorText.setTextColor(tv.data)
+                    }
                     binding.errorText.text = getString(R.string.no_sessions)
                     binding.errorContainer.visibility = View.VISIBLE
                     binding.sessionsRecyclerView.visibility = View.GONE
@@ -613,6 +661,7 @@ class MainActivity : BaseActivity() {
                 binding.skeletonLayout.visibility = View.GONE
                 stopSkeletonShimmer()
                 binding.swipeRefresh.isRefreshing = false
+                binding.reloadingIndicator.visibility = View.GONE
                 isLoadingMore = false
             }
         }
@@ -641,19 +690,59 @@ class MainActivity : BaseActivity() {
     }
 
     private fun hideErrorOverlay() {
-        binding.errorContainer.visibility = View.GONE
         binding.octopusErrorGame.stopGame()
-        binding.btnRestartGame.visibility = View.GONE
+        // Animate the overlay fading out smoothly
+        binding.errorContainer.animate()
+            .alpha(0f)
+            .setDuration(400L)
+            .withEndAction {
+                binding.errorContainer.visibility = View.GONE
+                binding.errorContainer.alpha = 1f
+                binding.gameBottomArea.visibility = View.GONE
+            }
+            .start()
+        // Simultaneously un-blur the content behind (API 31+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ValueAnimator.ofFloat(20f, 0f).apply {
+                duration = 400L
+                addUpdateListener { animator ->
+                    val blurRadius = animator.animatedValue as Float
+                    if (blurRadius > 0.5f) {
+                        binding.sessionsRecyclerView.setRenderEffect(
+                            RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+                        )
+                    } else {
+                        binding.sessionsRecyclerView.setRenderEffect(null)
+                    }
+                }
+                start()
+            }
+        }
     }
 
     private fun showErrorWithGame(message: String) {
         binding.errorText.text = message
+        binding.errorText.setTextColor(
+            androidx.core.content.ContextCompat.getColor(this, R.color.error_overlay_text_subdued)
+        )
         binding.errorSignalMessage.visibility = View.VISIBLE
         binding.octopusErrorGame.visibility = View.VISIBLE
-        binding.btnRestartGame.visibility = View.GONE
+        binding.gameBottomArea.visibility = View.VISIBLE
+        binding.errorContainer.setBackgroundColor(
+            androidx.core.content.ContextCompat.getColor(this, R.color.error_overlay_background)
+        )
+        // Reset alpha in case a previous hide-animation is still running
+        binding.errorContainer.alpha = 1f
         binding.errorContainer.visibility = View.VISIBLE
-        // Sessions RecyclerView stays visible behind the dim overlay when sessions exist
+        // Sessions RecyclerView stays visible behind the dim+blur overlay when sessions exist
         binding.sessionsRecyclerView.visibility = View.VISIBLE
+
+        // Blur the content behind the overlay (API 31+; dim alone as fallback on older devices)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(
+                RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
+            )
+        }
 
         val gameView = binding.octopusErrorGame
         gameView.highScore = PreferenceUtils.getOctopusHighScore(this)
@@ -662,15 +751,13 @@ class MainActivity : BaseActivity() {
             if (hs > PreferenceUtils.getOctopusHighScore(this)) {
                 PreferenceUtils.setOctopusHighScore(this, hs)
             }
-            // Show the "tap to restart" area below the game
-            runOnUiThread {
-                binding.btnRestartGame.visibility = View.VISIBLE
-            }
         }
 
-        binding.btnRestartGame.setOnClickListener {
-            binding.btnRestartGame.visibility = View.GONE
-            gameView.startGame()
+        // The entire area below the game is tappable to restart when game over
+        binding.gameBottomArea.setOnClickListener {
+            if (gameView.isGameOver) {
+                gameView.startGame()
+            }
         }
 
         gameView.post {

@@ -41,6 +41,9 @@ class OctopusGameView @JvmOverloads constructor(
     private var gameRunning = false
     private var gameOver = false
 
+    /** True when the current game has ended and is waiting for a restart. */
+    val isGameOver: Boolean get() = gameOver
+
     // ── Timer ────────────────────────────────────────────────────────────
 
     private var elapsedTime = 0f  // seconds elapsed since game started
@@ -377,6 +380,12 @@ class OctopusGameView @JvmOverloads constructor(
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })
+            // Restart hint (smaller, subdued)
+            val hintPaint = Paint(scorePaint).apply {
+                textSize = 12f * dp
+                color = Color.argb(180, 255, 255, 255)
+            }
+            canvas.drawText("Tap below to restart", w / 2f, h / 2f + 52f * dp, hintPaint)
             scorePaint.textAlign = Paint.Align.LEFT // reset
         }
     }
@@ -504,7 +513,7 @@ class OctopusGameView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val desiredH = (200f * dp).toInt()
+        val desiredH = (260f * dp).toInt()
         setMeasuredDimension(
             getDefaultSize(suggestedMinimumWidth, widthMeasureSpec),
             resolveSize(desiredH, heightMeasureSpec)
