@@ -137,14 +137,16 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
 
     /**
      * Call when speech recognition begins.
-     * Transitions from resting ripple → listening (taller wave, faster scroll).
-     * Cycle count is intentionally kept the same so there is no "zoom" effect.
+     * Marks the view as active; [setAmplitude] will now drive the wave height
+     * in real-time from microphone volume, rising when the user speaks and
+     * falling back to the idle ripple when they pause between words.
      */
     fun startListening() {
         listeningActive = true
         settlingToFlat = false
-        targetAmplitudeDp = LISTENING_AMPLITUDE_DP
-        targetCycles = IDLE_CYCLES   // keep cycles constant — only height & speed change
+        // Start at idle amplitude — setAmplitude() will raise it as the user speaks
+        targetAmplitudeDp = IDLE_AMPLITUDE_DP
+        targetCycles = IDLE_CYCLES
         ensureChoreographerRunning()
     }
 
@@ -174,12 +176,19 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
     }
 
     /**
-     * Volume input is intentionally ignored — the wave responds only to state
-     * transitions (resting → listening → flat), not microphone level.
+     * Drive the wave in real-time from mic volume (called from onRmsChanged).
+     * When volume exceeds the threshold, the wave rises to the listening state.
+     * When volume drops (user pauses between words), the wave immediately returns
+     * to the resting ripple — animating per word like a radio wave.
      */
-    @Suppress("UNUSED_PARAMETER")
     fun setAmplitude(normalizedLevel: Float) {
-        // No-op: wave is state-driven only
+        if (!listeningActive || settlingToFlat) return
+        targetAmplitudeDp = if (normalizedLevel > AMPLITUDE_THRESHOLD) {
+            LISTENING_AMPLITUDE_DP
+        } else {
+            IDLE_AMPLITUDE_DP
+        }
+        ensureChoreographerRunning()
     }
 
     private fun ensureChoreographerRunning() {
@@ -254,6 +263,8 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
         private const val TARGET_FPS = 60f
         private const val SNAP_THRESHOLD_DP = 0.05f
         private const val FRAME_TIME_MS = 16f
+        /** Normalised mic level (0..1) above which the wave enters listening state. */
+        private const val AMPLITUDE_THRESHOLD = 0.15f
         private val TWO_PI = (2.0 * Math.PI).toFloat()
     }
 }

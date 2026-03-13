@@ -69,7 +69,7 @@
     <string name="onboarding_theme_title">Choose your theme</string>
     <string name="onboarding_theme_desc">Select a look that suits you.</string>
 
-    <string name="error_signal_message">You\'ve lost signal — enjoy the game below whilst we keep trying for you</string>
+    <string name="error_signal_message">No Internet Connectivity</string>
     <string name="game_tap_to_restart">Tap here to restart</string>
 
     <!-- Main Activity -->

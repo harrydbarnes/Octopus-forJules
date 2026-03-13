@@ -41,9 +41,13 @@ class OctopusGameView @JvmOverloads constructor(
 
     private var gameRunning = false
     private var gameOver = false
+    private var waitingToPlay = true   // True before the first tap-to-play
 
     /** True when the current game has ended and is waiting for a restart. */
     val isGameOver: Boolean get() = gameOver
+
+    /** True before the user has tapped to start the game for the first time. */
+    val isWaitingToPlay: Boolean get() = waitingToPlay
 
     // ── Timer ────────────────────────────────────────────────────────────
 
@@ -75,7 +79,7 @@ class OctopusGameView @JvmOverloads constructor(
 
     // ── Physics ─────────────────────────────────────────────────────────
 
-    private val gravity = 1800f * dp
+    private val gravityPx = 1800f * dp
     private val jumpVelocity = -650f * dp
 
     // ── Paints ──────────────────────────────────────────────────────────
@@ -90,6 +94,9 @@ class OctopusGameView @JvmOverloads constructor(
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val seaweedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val gameOverPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
 
     // ── Choreographer ───────────────────────────────────────────────────
 
@@ -105,6 +112,24 @@ class OctopusGameView @JvmOverloads constructor(
 
             if (gameRunning && !gameOver) {
                 updateGame(dt)
+            } else if (waitingToPlay) {
+                // Ambient animation while waiting for tap-to-play
+                tentaclePhase += 3f * dt
+                if (Random.nextFloat() < AMBIENT_BUBBLE_SPAWN_PROBABILITY) {
+                    bubbles.add(Bubble(
+                        x = Random.nextFloat() * width,
+                        y = height.toFloat(),
+                        radius = (3f + Random.nextFloat() * 6f) * dp,
+                        speed = (40f + Random.nextFloat() * 60f) * dp
+                    ))
+                }
+                val biter = bubbles.iterator()
+                while (biter.hasNext()) {
+                    val b = biter.next()
+                    b.y -= b.speed * dt
+                    b.x += sin((b.y * 0.02f).toDouble()).toFloat() * dp * 0.5f
+                    if (b.y + b.radius < 0f) biter.remove()
+                }
             }
 
             invalidate()
@@ -150,7 +175,7 @@ class OctopusGameView @JvmOverloads constructor(
         floorPaint.style = Paint.Style.FILL
 
         gameOverPaint.color = Color.WHITE
-        gameOverPaint.textSize = 22f * dp
+        gameOverPaint.textSize = 24f * dp
         gameOverPaint.textAlign = Paint.Align.CENTER
         gameOverPaint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
         gameOverPaint.letterSpacing = 0.15f
@@ -158,12 +183,40 @@ class OctopusGameView @JvmOverloads constructor(
 
     // ── Lifecycle ───────────────────────────────────────────────────────
 
+    /**
+     * Show the game canvas with a "TAP TO PLAY" prompt and ambient animation.
+     * The game does not start until the user taps.
+     */
+    fun prepareToPlay() {
+        if (width == 0 || height == 0) {
+            post { prepareToPlay() }
+            return
+        }
+        waitingToPlay = true
+        gameRunning = false
+        gameOver = false
+        elapsedTime = 0f
+        obstacles.clear()
+        bubbles.clear()
+        scrollOffset = 0f
+        tentaclePhase = 0f
+        octopusVelocityY = 0f
+        isJumping = false
+        octopusY = floorY - octopusSize
+        if (!choreographerRunning) {
+            choreographerRunning = true
+            lastFrameTimeNanos = 0L
+            Choreographer.getInstance().postFrameCallback(frameCallback)
+        }
+    }
+
     fun startGame() {
         // Defer until the view has been laid out so width/height are valid
         if (width == 0 || height == 0) {
             post { startGame() }
             return
         }
+        waitingToPlay = false
         gameRunning = true
         gameOver = false
         elapsedTime = 0f
@@ -220,10 +273,10 @@ class OctopusGameView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (gameOver) {
-                startGame()
-            } else {
-                jump()
+            when {
+                waitingToPlay -> startGame()
+                gameOver -> startGame()
+                else -> jump()
             }
             return true
         }
@@ -251,7 +304,7 @@ class OctopusGameView @JvmOverloads constructor(
 
         // Octopus physics
         if (isJumping) {
-            octopusVelocityY += gravity * dt
+            octopusVelocityY += gravityPx * dt
             octopusY += octopusVelocityY * dt
             if (octopusY >= floorY - octopusSize) {
                 octopusY = floorY - octopusSize
@@ -366,21 +419,19 @@ class OctopusGameView @JvmOverloads constructor(
         // Octopus
         drawOctopus(canvas)
 
-        // Timer top-left (seconds only)
-        val timerText = formatTime(elapsedTime)
-        canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
+        // Timer top-left and best time top-right — only during active game or game over
+        if (!waitingToPlay) {
+            val timerText = formatTime(elapsedTime)
+            canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
 
-        // Best time top-right (seconds only)
-        val bestText = "Best: ${formatTime(highScore.toFloat())}"
-        val bestWidth = scorePaint.measureText(bestText)
-        canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
+            val bestText = "Best: ${formatTime(highScore.toFloat())}"
+            val bestWidth = scorePaint.measureText(bestText)
+            canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
+        }
 
         // Game over overlay
         if (gameOver) {
-            val overlayPaint = Paint().apply {
-                color = Color.argb(120, 0, 0, 0)
-                style = Paint.Style.FILL
-            }
+            overlayPaint.color = Color.argb(120, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
             canvas.drawText("GAME OVER", w / 2f, h / 2f, gameOverPaint)
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
@@ -393,6 +444,13 @@ class OctopusGameView @JvmOverloads constructor(
             }
             canvas.drawText("Tap to restart", w / 2f, h / 2f + 52f * dp, hintPaint)
             scorePaint.textAlign = Paint.Align.LEFT // reset
+        }
+
+        // Tap to play overlay (shown before first game start)
+        if (waitingToPlay) {
+            overlayPaint.color = Color.argb(100, 0, 0, 0)
+            canvas.drawRect(0f, 0f, w, h, overlayPaint)
+            canvas.drawText("TAP TO PLAY", w / 2f, h / 2f, gameOverPaint)
         }
     }
 
@@ -541,5 +599,7 @@ class OctopusGameView @JvmOverloads constructor(
 
     companion object {
         private const val CORNER_RADIUS_DP = 16f
+        /** Probability per frame of spawning a bubble during ambient (waiting) animation. */
+        private const val AMBIENT_BUBBLE_SPAWN_PROBABILITY = 0.015f
     }
 }

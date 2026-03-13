@@ -767,14 +767,16 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // The entire area below the game: jump while running, restart when game over
+        // The entire area below the game: start/jump/restart depending on game state
         binding.gameBottomArea.setOnClickListener {
-            if (gameView.isGameOver) gameView.startGame() else gameView.jump()
+            when {
+                gameView.isWaitingToPlay -> gameView.startGame()
+                gameView.isGameOver -> gameView.startGame()
+                else -> gameView.jump()
+            }
         }
 
-        gameView.post {
-            gameView.startGame()
-        }
+        gameView.prepareToPlay()
     }
 
     private fun startSkeletonShimmer() {
