@@ -641,9 +641,13 @@ class TaskDetailActivity : BaseActivity() {
             setupToggleButton(holder, false, logId, position)
         }
 
+        private fun getFormattedText(text: String): CharSequence {
+            return if (isRawLogsEnabled) text else applyMarkdownFormatting(text)
+        }
+
         private fun bindReviewLog(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String, logId: String?, position: Int) {
             val reviewData = bindReviewData(holder, isExpanded, fullDescription)
-            holder.descText.text = if (isRawLogsEnabled) reviewData.displayDescription else applyMarkdownFormatting(reviewData.displayDescription)
+            holder.descText.text = getFormattedText(reviewData.displayDescription)
             setupToggleButton(holder, reviewData.showToggleButton, logId, position)
         }
 
@@ -652,13 +656,13 @@ class TaskDetailActivity : BaseActivity() {
             if (planData.isPlanConfigured) {
                 holder.descText.text = "" // Handled by RecyclerView
             } else {
-                holder.descText.text = if (isRawLogsEnabled) fullDescription else applyMarkdownFormatting(fullDescription)
+                holder.descText.text = getFormattedText(fullDescription)
             }
             setupToggleButton(holder, planData.showToggleButton, logId, position)
         }
 
         private fun bindDefaultLog(holder: LogViewHolder, fullDescription: String, logId: String?, position: Int) {
-            holder.descText.text = if (isRawLogsEnabled) fullDescription else applyMarkdownFormatting(fullDescription)
+            holder.descText.text = getFormattedText(fullDescription)
             setupToggleButton(holder, false, logId, position)
         }
 
