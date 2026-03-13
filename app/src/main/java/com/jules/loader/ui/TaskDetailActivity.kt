@@ -703,6 +703,10 @@ class TaskDetailActivity : BaseActivity() {
         }
 
         private fun bindReviewData(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String): ReviewDisplayData {
+            if (isRawLogsEnabled) {
+                return ReviewDisplayData(displayDescription = fullDescription, showToggleButton = false)
+            }
+
             var displayDescription = ""
             val showToggleButton = true
             if (!isExpanded) {
