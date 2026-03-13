@@ -58,9 +58,118 @@ class TaskDetailActivity : BaseActivity() {
         const val CONST_PLAN_COMPLETED_MARKER = "All plan steps have been successfully completed. Ready for submission."
         const val CONST_COMPILED_CORRECTLY_MARKER = "Ran tests and compiled successfully."
         const val CONST_RATING_MARKER = "### Final Rating: #Correct#"
+        const val TYPE_PLAN_APPROVED = "PLAN APPROVED"
+
+        private const val BULLET_GAP_DEFAULT = 8
+        private const val BULLET_INDENT_DEFAULT = 24
+        private const val BULLET_GAP_INDENTED = 8
+        private const val BULLET_INDENT_INDENTED = 48
+        private const val HEADER_SUBITEM_MARGIN = 32
 
         val WORKING_TYPES = setOf("WORKING", "COMMITTING_CODE", "EXECUTING TESTS", "RUNNING TESTS")
         val TERMINAL_STATES = setOf("COMPLETED", "FAILED", "CANCELLED", "TERMINATED")
+
+        fun applyMarkdownFormatting(text: String): CharSequence {
+            val spannableString = android.text.SpannableStringBuilder()
+            val lines = text.split("\n")
+            var afterBoldBullet = false  // after a bold-text line (for indenting plain bullets)
+            var inHeaderSection = false  // after a "header" bold line (ends with just ":")
+
+            for ((index, line) in lines.withIndex()) {
+                if (index > 0) spannableString.append("\n")
+                val trimmed = line.trimStart()
+
+                when {
+                    trimmed.isEmpty() -> {
+                        afterBoldBullet = false
+                        inHeaderSection = false
+                    }
+                    trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
+                        val content = trimmed.substring(2)
+                        val isIndented = afterBoldBullet || inHeaderSection
+                        val indent = if (isIndented) BULLET_INDENT_INDENTED else BULLET_INDENT_DEFAULT
+                        val gapWidth = if (isIndented) BULLET_GAP_INDENTED else BULLET_GAP_DEFAULT
+                        val start = spannableString.length
+                        spannableString.append(applyInlineBold(content))
+                        // LeadingMarginSpan indents the entire bullet block (including the marker)
+                        spannableString.setSpan(
+                            android.text.style.LeadingMarginSpan.Standard(indent, indent),
+                            start,
+                            spannableString.length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        // BulletSpan draws the dot within the indented block
+                        spannableString.setSpan(
+                            android.text.style.BulletSpan(gapWidth),
+                            start,
+                            spannableString.length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    trimmed.startsWith("**") -> {
+                        // Determine what follows the bold text
+                        val closingIdx = trimmed.indexOf("**", 2)
+                        val afterBold = if (closingIdx >= 0) trimmed.substring(closingIdx + 2).trim() else ""
+                        // "header" bold = line is bold text followed only by ":" (section header)
+                        val isHeaderBold = afterBold == ":" || afterBold.isEmpty()
+
+                        when {
+                            isHeaderBold -> {
+                                // Section header: render bold, not indented
+                                spannableString.append(applyInlineBold(trimmed))
+                                inHeaderSection = true
+                                afterBoldBullet = false
+                            }
+                            inHeaderSection -> {
+                                // Sub-item under section header: indent with leading margin
+                                val start = spannableString.length
+                                spannableString.append(applyInlineBold(trimmed))
+                                spannableString.setSpan(
+                                    android.text.style.LeadingMarginSpan.Standard(HEADER_SUBITEM_MARGIN),
+                                    start,
+                                    spannableString.length,
+                                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                                )
+                                afterBoldBullet = true
+                            }
+                            else -> {
+                                // Regular bold line
+                                spannableString.append(applyInlineBold(trimmed))
+                                afterBoldBullet = true
+                                inHeaderSection = false
+                            }
+                        }
+                    }
+                    else -> {
+                        spannableString.append(applyInlineBold(line))
+                        afterBoldBullet = false
+                    }
+                }
+            }
+            return spannableString
+        }
+
+        private fun applyInlineBold(text: String): CharSequence {
+            val spannableString = android.text.SpannableStringBuilder()
+            var currentIndex = 0
+            val regex = Regex("\\*\\*(.*?)\\*\\*")
+            val matches = regex.findAll(text)
+            for (match in matches) {
+                spannableString.append(text.substring(currentIndex, match.range.first))
+                val boldText = match.groupValues[1]
+                val start = spannableString.length
+                spannableString.append(boldText)
+                spannableString.setSpan(
+                    android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    start,
+                    spannableString.length,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                currentIndex = match.range.last + 1
+            }
+            spannableString.append(text.substring(currentIndex))
+            return spannableString
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +205,9 @@ class TaskDetailActivity : BaseActivity() {
                 expandedItems.addAll(savedItems)
             }
         }
+
+        // Show the loading indicator immediately while logs are being fetched for the first time
+        binding.logsLoadingIndicator.visibility = View.VISIBLE
 
         // Setup Log RecyclerView
         binding.logRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -209,16 +321,18 @@ class TaskDetailActivity : BaseActivity() {
             lifecycleScope.launch {
                 try {
                     isApprovingPlan = true
-                    binding.btnApprovePlan.isEnabled = false
+                    binding.btnApprovePlan.visibility = View.GONE
+                    binding.approvePlanProgress.visibility = View.VISIBLE
                     repository.approvePlan(id)
-                    binding.planApprovalContainer.visibility = View.GONE
                     Toast.makeText(this@TaskDetailActivity, getString(R.string.plan_approval_success), Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
-                    binding.btnApprovePlan.isEnabled = true
                     Toast.makeText(this@TaskDetailActivity, getString(R.string.error_approve_plan), Toast.LENGTH_SHORT).show()
                     Log.e("TaskDetailActivity", "Error approving plan", e)
                 } finally {
                     isApprovingPlan = false
+                    binding.approvePlanProgress.visibility = View.GONE
+                    binding.btnApprovePlan.visibility = View.VISIBLE
+                    binding.btnApprovePlan.isEnabled = true
                 }
             }
         }
@@ -312,7 +426,7 @@ class TaskDetailActivity : BaseActivity() {
             binding.detailTitle.text = fullTitle
         }
 
-        binding.detailPrompt.text = prompt
+        binding.detailPrompt.text = applyMarkdownFormatting(prompt)
         binding.detailStatusChip.text = status
 
         when (statusRaw) {
@@ -341,6 +455,7 @@ class TaskDetailActivity : BaseActivity() {
 
     private fun startPollingLogs(id: String) {
         lifecycleScope.launch {
+            var initialLoadDone = false
             while (isActive) {
                 try {
                     val session = repository.getSession(id)
@@ -369,6 +484,11 @@ class TaskDetailActivity : BaseActivity() {
                         val response = repository.getActivities(id, pageToken = null)
                         addLogs(response.activities ?: emptyList())
 
+                        if (!initialLoadDone) {
+                            initialLoadDone = true
+                            binding.logsLoadingIndicator.visibility = View.GONE
+                        }
+
                         // Only set the initial token for backward pagination
                         if (nextPageToken == null) {
                             nextPageToken = response.nextPageToken
@@ -380,6 +500,10 @@ class TaskDetailActivity : BaseActivity() {
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("TaskDetailActivity", "Error polling logs", e)
+                    if (!initialLoadDone) {
+                        initialLoadDone = true
+                        binding.logsLoadingIndicator.visibility = View.GONE
+                    }
                 }
                 delay(POLLING_INTERVAL_MS)
             }
@@ -418,9 +542,10 @@ class TaskDetailActivity : BaseActivity() {
         if (validNewLogs.isEmpty()) return
 
         val snapshot = synchronized(allLogs) {
-            val existingIds = allLogs.mapNotNull { it.id }.toSet()
+            val existingIdentifiers = allLogs.map { it.name ?: it.id }.filterNotNull().toSet()
             val uniqueNewLogs = validNewLogs.filter { log ->
-                log.id == null || !existingIds.contains(log.id)
+                val identifier = log.name ?: log.id
+                identifier == null || !existingIdentifiers.contains(identifier)
             }
 
             if (uniqueNewLogs.isEmpty()) return
@@ -428,7 +553,19 @@ class TaskDetailActivity : BaseActivity() {
             allLogs.addAll(uniqueNewLogs)
             // Keep allLogs sorted so any snapshot taken elsewhere (e.g., sendMessage) is consistent
             allLogs.sortBy { com.jules.loader.util.DateUtils.parseDate(it.timestamp)?.time ?: 0L }
-            ArrayList(allLogs)
+
+            // Remove consecutive entries that resolve to the same type (e.g., two PLAN APPROVED in a row)
+            val deduped = allLogs.fold(mutableListOf<ActivityLog>()) { acc, log ->
+                val resolvedType = log.getResolvedType().uppercase(java.util.Locale.ROOT)
+                val prevType = acc.lastOrNull()?.getResolvedType()?.uppercase(java.util.Locale.ROOT)
+                if (resolvedType == TYPE_PLAN_APPROVED && resolvedType == prevType) {
+                    // Keep only the first of consecutive PLAN APPROVED entries
+                } else {
+                    acc.add(log)
+                }
+                acc
+            }
+            ArrayList(deduped)
         }
         logAdapter.submitList(snapshot)
     }
@@ -480,7 +617,7 @@ class TaskDetailActivity : BaseActivity() {
             holder.typeIconEnd.visibility = View.GONE
 
             when {
-                type == "PLAN APPROVED" -> {
+                type == TaskDetailActivity.TYPE_PLAN_APPROVED -> {
                     bindPlanApprovedLog(holder, logId, position)
                 }
                 type.contains("REVIEW") -> {
@@ -504,7 +641,7 @@ class TaskDetailActivity : BaseActivity() {
 
         private fun bindReviewLog(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String, logId: String?, position: Int) {
             val reviewData = bindReviewData(holder, isExpanded, fullDescription)
-            holder.descText.text = applyMarkdownBold(reviewData.displayDescription)
+            holder.descText.text = applyMarkdownFormatting(reviewData.displayDescription)
             setupToggleButton(holder, reviewData.showToggleButton, logId, position)
         }
 
@@ -513,13 +650,13 @@ class TaskDetailActivity : BaseActivity() {
             if (planData.isPlanConfigured) {
                 holder.descText.text = "" // Handled by RecyclerView
             } else {
-                holder.descText.text = applyMarkdownBold(fullDescription)
+                holder.descText.text = applyMarkdownFormatting(fullDescription)
             }
             setupToggleButton(holder, planData.showToggleButton, logId, position)
         }
 
         private fun bindDefaultLog(holder: LogViewHolder, fullDescription: String, logId: String?, position: Int) {
-            holder.descText.text = applyMarkdownBold(fullDescription)
+            holder.descText.text = applyMarkdownFormatting(fullDescription)
             setupToggleButton(holder, false, logId, position)
         }
 
@@ -530,7 +667,7 @@ class TaskDetailActivity : BaseActivity() {
             fullDescription = fullDescription.replace(CONST_RATING_MARKER, "").trim()
 
             when {
-                fullDescription.contains(CONST_REVIEW_MARKER) -> type = "CODE REVIEW"
+                fullDescription.contains(CONST_REVIEW_MARKER) || type.contains("REVIEW") -> type = "CODE REVIEW"
                 fullDescription.contains(CONST_PLAN_COMPLETED_MARKER) -> type = "ALL PLAN STEPS COMPLETED"
                 fullDescription.contains(CONST_COMPILED_CORRECTLY_MARKER) -> type = "COMPILED CORRECTLY"
             }
@@ -577,11 +714,19 @@ class TaskDetailActivity : BaseActivity() {
             val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
             val matches = regex.findAll(fullDescription).toList()
 
-            if (matches.isNotEmpty()) {
-                val parsedSteps = matches.mapIndexed { index, matchResult ->
+            val parsedSteps: List<Pair<String, String>> = if (matches.isNotEmpty()) {
+                matches.mapIndexed { index, matchResult ->
                     (index + 1).toString() to matchResult.groupValues[1].trim()
                 }
+            } else {
+                // Fall back to treating each non-empty line as a plan step
+                fullDescription.lines()
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .mapIndexed { index, line -> (index + 1).toString() to line }
+            }
 
+            if (parsedSteps.isNotEmpty()) {
                 holder.descText.visibility = View.GONE
                 holder.planStepsRecyclerView.visibility = View.VISIBLE
                 holder.planStepsRecyclerView.layoutManager = LinearLayoutManager(holder.itemView.context)
@@ -621,29 +766,6 @@ class TaskDetailActivity : BaseActivity() {
                 holder.btnToggleExpand.visibility = View.GONE
                 holder.btnToggleExpand.setOnClickListener(null)
             }
-        }
-
-        private fun applyMarkdownBold(text: String): CharSequence {
-            val spannableString = android.text.SpannableStringBuilder()
-            var currentIndex = 0
-            val regex = Regex("\\*\\*(.*?)\\*\\*")
-            val matches = regex.findAll(text)
-
-            for (match in matches) {
-                spannableString.append(text.substring(currentIndex, match.range.first))
-                val boldText = match.groupValues[1]
-                val start = spannableString.length
-                spannableString.append(boldText)
-                spannableString.setSpan(
-                    android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                    start,
-                    spannableString.length,
-                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                currentIndex = match.range.last + 1
-            }
-            spannableString.append(text.substring(currentIndex))
-            return spannableString
         }
 
         class PlanStepAdapter(private val steps: List<Pair<String, String>>) : RecyclerView.Adapter<PlanStepAdapter.PlanStepViewHolder>() {

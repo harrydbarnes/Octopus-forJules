@@ -7,11 +7,12 @@ import android.content.Intent
 import android.graphics.drawable.Animatable
 import android.net.Uri
 import android.os.Bundle
+import androidx.browser.customtabs.CustomTabsIntent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ProgressBar
+import com.jules.loader.ui.widget.MorphingLoadingIndicator
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
@@ -183,11 +184,11 @@ class OnboardingActivity : BaseActivity() {
             private val input: TextInputEditText = itemView.findViewById(R.id.apiKeyInput)
             private val getKeyLink: TextView = itemView.findViewById(R.id.getKeyLink)
             private val saveButton: Button = itemView.findViewById(R.id.saveButton)
-            private val progressBar: ProgressBar = itemView.findViewById(R.id.progressBar)
+            private val progressBar: MorphingLoadingIndicator = itemView.findViewById(R.id.progressBar)
 
             private fun setLoading(isLoading: Boolean) {
                 progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-                saveButton.visibility = if (isLoading) View.INVISIBLE else View.VISIBLE
+                saveButton.isEnabled = !isLoading
                 input.isEnabled = !isLoading
             }
 
@@ -212,8 +213,8 @@ class OnboardingActivity : BaseActivity() {
                 }
 
                 getKeyLink.setOnClickListener {
-                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://jules.google.com/settings/api"))
-                    activity.startActivity(browserIntent)
+                    val customTabsIntent = CustomTabsIntent.Builder().build()
+                    customTabsIntent.launchUrl(activity, Uri.parse("https://jules.google.com/settings/api"))
                 }
 
                 input.setOnEditorActionListener { _, actionId, event ->

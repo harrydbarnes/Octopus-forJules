@@ -71,10 +71,11 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <FrameLayout
+        <LinearLayout
             android:id="@+id/buttonContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_marginTop="32dp"
             android:layout_marginBottom="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -89,14 +90,15 @@
                 android:layout_height="wrap_content"
                 android:text="@string/save_continue" />
 
-            <ProgressBar
+            <com.jules.loader.ui.widget.MorphingLoadingIndicator
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"/>
+                android:layout_marginTop="12dp"
+                android:layout_gravity="center_horizontal"
+                android:visibility="gone" />
 
-        </FrameLayout>
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

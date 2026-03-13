@@ -112,8 +112,18 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         android:clipToPadding="false"
+        android:overScrollMode="never"
         android:paddingTop="16dp"
         android:paddingBottom="90dp" />
+
+    <com.jules.loader.ui.widget.MorphingLoadingIndicator
+        android:id="@+id/logsLoadingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="40dp"
+        android:visibility="gone"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     <LinearLayout
         android:id="@+id/inputContainer"
@@ -156,6 +166,16 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
             </LinearLayout>
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/approvePlanProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:trackCornerRadius="50dp"
+                app:indicatorSize="28dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnApprovePlan"

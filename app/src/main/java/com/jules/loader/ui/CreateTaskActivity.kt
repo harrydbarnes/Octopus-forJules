@@ -167,6 +167,11 @@ class CreateTaskActivity : BaseActivity() {
                     viewModel.isLoading.collectLatest { isLoading ->
                         binding.btnStartTask.isEnabled = !isLoading
                         binding.btnStartTask.text = if (isLoading) getString(R.string.create_task_starting) else getString(R.string.create_task_send)
+                        if (isLoading) {
+                            binding.pageLoadingIndicator.visibility = android.view.View.VISIBLE
+                        } else if (binding.contentContainer.visibility == android.view.View.VISIBLE) {
+                            binding.pageLoadingIndicator.visibility = android.view.View.GONE
+                        }
                     }
                 }
 
