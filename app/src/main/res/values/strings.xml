@@ -28,6 +28,7 @@
     <string name="setting_shorten_repo_names">Shorten Repo Names</string>
     <string name="setting_voice_typing">Enable Voice Typing</string>
     <string name="setting_prompt_gallery">Enable Prompt Gallery</string>
+    <string name="setting_raw_logs">Disable Formatting (Raw Updates)</string>
     <string name="setting_shorten_dates">Shorten Dates</string>
     <string name="setting_date_format_mmdd">Use MM/DD Date Format</string>
     <string name="setting_theme">App Theme</string>

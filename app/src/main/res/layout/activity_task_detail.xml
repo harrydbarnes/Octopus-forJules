@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
-        android:background="?attr/colorSurface"
+        android:background="@drawable/bg_appbar_bottom_rounded"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -40,7 +40,8 @@
                     tools:text="Session Title"
                     android:textAppearance="?attr/textAppearanceHeadlineMedium"
                     android:textStyle="bold"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="16dp"
+                    android:textIsSelectable="true" />
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
@@ -99,7 +100,8 @@
                         android:layout_height="wrap_content"
                         android:padding="16dp"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textIsSelectable="true" />
                 </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
