@@ -4,8 +4,33 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:background="?attr/colorSurface">
+    android:paddingTop="12dp"
+    android:paddingBottom="24dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:background="@drawable/bg_voice_dialog_top_rounded">
+
+    <!-- Drag-to-close affordance: downward chevron -->
+    <ImageView
+        android:id="@+id/btn_drag_dismiss"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/ic_arrow_down"
+        android:contentDescription="@string/action_dismiss"
+        android:tint="?attr/colorPrimary"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:scaleType="centerInside" />
+
+    <!-- Wavy linear voice indicator -->
+    <com.jules.loader.ui.widget.WavyVoiceIndicatorView
+        android:id="@+id/wavy_voice_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp" />
 
     <TextView
         android:id="@+id/tv_listening_status"
@@ -15,16 +40,7 @@
         android:textAppearance="?attr/textAppearanceTitleMedium"
         android:textColor="?attr/colorOnSurface"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp" />
-
-    <!-- Simple visualizer: A pulsating circle or bar -->
-    <View
-        android:id="@+id/voice_visualizer"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:background="@drawable/shape_circle_accent"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="16dp" />
 
     <TextView
         android:id="@+id/tv_transcription"

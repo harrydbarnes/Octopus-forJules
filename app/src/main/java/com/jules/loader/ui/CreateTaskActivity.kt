@@ -400,13 +400,18 @@ class CreateTaskActivity : BaseActivity() {
         val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
         dialog.setContentView(dialogView)
 
-        val visualizer = dialogView.findViewById<android.view.View>(R.id.voice_visualizer)
+        val wavyIndicator = dialogView.findViewById<com.jules.loader.ui.widget.WavyVoiceIndicatorView>(R.id.wavy_voice_indicator)
         val tvTranscription = dialogView.findViewById<android.widget.TextView>(R.id.tv_transcription)
         val tvStatus = dialogView.findViewById<android.widget.TextView>(R.id.tv_listening_status)
         val btnCancel = dialogView.findViewById<android.view.View>(R.id.btn_cancel_voice)
+        val btnDragDismiss = dialogView.findViewById<android.view.View>(R.id.btn_drag_dismiss)
 
         btnCancel.setOnClickListener {
             speechRecognizer.stopListening()
+            dialog.dismiss()
+        }
+
+        btnDragDismiss.setOnClickListener {
             dialog.dismiss()
         }
 
@@ -423,10 +428,10 @@ class CreateTaskActivity : BaseActivity() {
                 tvStatus.text = "Listening..."
             }
             override fun onRmsChanged(rmsdB: Float) {
-                // Scale visualizer based on dB
+                // Map dB level to normalised [0, 1] amplitude for the wavy indicator
                 val clampedDb = rmsdB.coerceIn(MIN_DB_LEVEL, MAX_DB_LEVEL)
-                val scale = 1.0f + (clampedDb - MIN_DB_LEVEL) / DB_LEVEL_RANGE // Scale 1.0 to 2.0
-                visualizer.animate().scaleX(scale).scaleY(scale).setDuration(50).start()
+                val normalised = (clampedDb - MIN_DB_LEVEL) / DB_LEVEL_RANGE
+                wavyIndicator.setAmplitude(normalised)
             }
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
