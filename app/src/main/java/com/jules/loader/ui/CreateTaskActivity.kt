@@ -426,6 +426,7 @@ class CreateTaskActivity : BaseActivity() {
                 isListening = true
                 originalTextBeforeSpeech = binding.taskInput.text?.toString() ?: ""
                 tvStatus.text = "Listening..."
+                wavyIndicator.startListening()
             }
             override fun onRmsChanged(rmsdB: Float) {
                 // Map dB level to normalised [0, 1] amplitude for the wavy indicator
@@ -436,6 +437,7 @@ class CreateTaskActivity : BaseActivity() {
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
                 tvStatus.text = "Processing..."
+                wavyIndicator.stopListening()
             }
             override fun onError(error: Int) {
                 isListening = false
