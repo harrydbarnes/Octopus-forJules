@@ -211,7 +211,8 @@ class TaskDetailActivity : BaseActivity() {
 
         // Setup Log RecyclerView
         binding.logRecyclerView.layoutManager = LinearLayoutManager(this)
-        logAdapter = LogAdapter(expandedItems) { logId, isExpanded ->
+        val isRawLogsEnabled = PreferenceUtils.isRawLogsEnabled(this)
+        logAdapter = LogAdapter(expandedItems, isRawLogsEnabled) { logId, isExpanded ->
             if (isExpanded) {
                 expandedItems.add(logId)
             } else {
@@ -572,6 +573,7 @@ class TaskDetailActivity : BaseActivity() {
 
     class LogAdapter(
         private val expandedItems: Set<String>,
+        private val isRawLogsEnabled: Boolean,
         private val onToggleExpand: (String, Boolean) -> Unit
     ) : ListAdapter<ActivityLog, LogAdapter.LogViewHolder>(LogDiffCallback()) {
 
@@ -641,7 +643,7 @@ class TaskDetailActivity : BaseActivity() {
 
         private fun bindReviewLog(holder: LogViewHolder, isExpanded: Boolean, fullDescription: String, logId: String?, position: Int) {
             val reviewData = bindReviewData(holder, isExpanded, fullDescription)
-            holder.descText.text = applyMarkdownFormatting(reviewData.displayDescription)
+            holder.descText.text = if (isRawLogsEnabled) reviewData.displayDescription else applyMarkdownFormatting(reviewData.displayDescription)
             setupToggleButton(holder, reviewData.showToggleButton, logId, position)
         }
 
@@ -650,13 +652,13 @@ class TaskDetailActivity : BaseActivity() {
             if (planData.isPlanConfigured) {
                 holder.descText.text = "" // Handled by RecyclerView
             } else {
-                holder.descText.text = applyMarkdownFormatting(fullDescription)
+                holder.descText.text = if (isRawLogsEnabled) fullDescription else applyMarkdownFormatting(fullDescription)
             }
             setupToggleButton(holder, planData.showToggleButton, logId, position)
         }
 
         private fun bindDefaultLog(holder: LogViewHolder, fullDescription: String, logId: String?, position: Int) {
-            holder.descText.text = applyMarkdownFormatting(fullDescription)
+            holder.descText.text = if (isRawLogsEnabled) fullDescription else applyMarkdownFormatting(fullDescription)
             setupToggleButton(holder, false, logId, position)
         }
 
@@ -711,6 +713,10 @@ class TaskDetailActivity : BaseActivity() {
         }
 
         private fun bindPlanData(holder: LogViewHolder, fullDescription: String, isExpanded: Boolean): PlanDisplayData {
+            if (isRawLogsEnabled) {
+                return PlanDisplayData(isPlanConfigured = false, showToggleButton = false)
+            }
+
             val regex = Regex("(?m)^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+(.*?)(?=\\n^(?:\\[?(?:\\d+\\.|[-*])\\]?)\\s+|$)", RegexOption.DOT_MATCHES_ALL)
             val matches = regex.findAll(fullDescription).toList()
 

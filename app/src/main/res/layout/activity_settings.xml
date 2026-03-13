@@ -64,6 +64,14 @@
                     android:checked="true" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_raw_logs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_raw_logs"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="false" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_shorten_dates"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

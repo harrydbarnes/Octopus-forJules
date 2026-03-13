@@ -175,6 +175,11 @@ class SettingsActivity : BaseActivity() {
             PreferenceUtils.setPromptGalleryEnabled(this, isChecked)
         }
 
+        binding.switchRawLogs.isChecked = PreferenceUtils.isRawLogsEnabled(this)
+        binding.switchRawLogs.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setRawLogsEnabled(this, isChecked)
+        }
+
         val shortenDates = PreferenceUtils.isShortenDatesEnabled(this)
         binding.switchShortenDates.isChecked = shortenDates
         binding.switchDateFormatMmdd.isEnabled = shortenDates
