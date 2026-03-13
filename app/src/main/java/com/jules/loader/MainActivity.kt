@@ -753,11 +753,9 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // The entire area below the game is tappable to restart when game over
+        // The entire area below the game: jump while running, restart when game over
         binding.gameBottomArea.setOnClickListener {
-            if (gameView.isGameOver) {
-                gameView.startGame()
-            }
+            if (gameView.isGameOver) gameView.startGame() else gameView.jump()
         }
 
         gameView.post {

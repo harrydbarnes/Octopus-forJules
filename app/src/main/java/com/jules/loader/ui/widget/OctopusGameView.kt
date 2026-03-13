@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Choreographer
@@ -75,7 +76,7 @@ class OctopusGameView @JvmOverloads constructor(
     // ── Physics ─────────────────────────────────────────────────────────
 
     private val gravity = 1800f * dp
-    private val jumpVelocity = -650f * dp
+    private val jumpVelocity = -490f * dp
 
     // ── Paints ──────────────────────────────────────────────────────────
 
@@ -149,9 +150,10 @@ class OctopusGameView @JvmOverloads constructor(
         floorPaint.style = Paint.Style.FILL
 
         gameOverPaint.color = Color.WHITE
-        gameOverPaint.textSize = 20f * dp
+        gameOverPaint.textSize = 22f * dp
         gameOverPaint.textAlign = Paint.Align.CENTER
-        gameOverPaint.isFakeBoldText = true
+        gameOverPaint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        gameOverPaint.letterSpacing = 0.15f
     }
 
     // ── Lifecycle ───────────────────────────────────────────────────────
@@ -218,7 +220,11 @@ class OctopusGameView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            jump()
+            if (gameOver) {
+                startGame()
+            } else {
+                jump()
+            }
             return true
         }
         return super.onTouchEvent(event)
@@ -360,11 +366,11 @@ class OctopusGameView @JvmOverloads constructor(
         // Octopus
         drawOctopus(canvas)
 
-        // Timer top-left
+        // Timer top-left (seconds only)
         val timerText = formatTime(elapsedTime)
         canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
 
-        // Best time top-right
+        // Best time top-right (seconds only)
         val bestText = "Best: ${formatTime(highScore.toFloat())}"
         val bestWidth = scorePaint.measureText(bestText)
         canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
@@ -376,7 +382,7 @@ class OctopusGameView @JvmOverloads constructor(
                 style = Paint.Style.FILL
             }
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("Game Over", w / 2f, h / 2f, gameOverPaint)
+            canvas.drawText("GAME OVER", w / 2f, h / 2f, gameOverPaint)
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })
@@ -385,16 +391,13 @@ class OctopusGameView @JvmOverloads constructor(
                 textSize = 12f * dp
                 color = Color.argb(180, 255, 255, 255)
             }
-            canvas.drawText("Tap below to restart", w / 2f, h / 2f + 52f * dp, hintPaint)
+            canvas.drawText("Tap to restart", w / 2f, h / 2f + 52f * dp, hintPaint)
             scorePaint.textAlign = Paint.Align.LEFT // reset
         }
     }
 
     private fun formatTime(seconds: Float): String {
-        val totalSec = seconds.toInt()
-        val mins = totalSec / 60
-        val secs = totalSec % 60
-        return "%02d:%02d".format(mins, secs)
+        return "${seconds.toInt()}s"
     }
 
     private fun drawOctopus(canvas: Canvas) {
