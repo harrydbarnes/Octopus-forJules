@@ -36,6 +36,7 @@ class SettingsActivity : BaseActivity() {
         setupThemeSelection()
         setupDisplaySettings()
         setupApiKeySection()
+        setupDebugSection()
     }
 
     private fun setupApiKeySection() {
@@ -175,11 +176,6 @@ class SettingsActivity : BaseActivity() {
             PreferenceUtils.setPromptGalleryEnabled(this, isChecked)
         }
 
-        binding.switchRawLogs.isChecked = PreferenceUtils.isRawLogsEnabled(this)
-        binding.switchRawLogs.setOnCheckedChangeListener { _, isChecked ->
-            PreferenceUtils.setRawLogsEnabled(this, isChecked)
-        }
-
         val shortenDates = PreferenceUtils.isShortenDatesEnabled(this)
         binding.switchShortenDates.isChecked = shortenDates
         binding.switchDateFormatMmdd.isEnabled = shortenDates
@@ -192,6 +188,21 @@ class SettingsActivity : BaseActivity() {
 
         binding.switchDateFormatMmdd.setOnCheckedChangeListener { _, isChecked ->
             PreferenceUtils.setDateFormatMMDD(this, isChecked)
+        }
+    }
+
+    private fun setupDebugSection() {
+        binding.switchRawLogs.isChecked = PreferenceUtils.isRawLogsEnabled(this)
+        binding.switchRawLogs.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setRawLogsEnabled(this, isChecked)
+        }
+
+        binding.btnTestOctopusGame.setOnClickListener {
+            val intent = Intent(this, com.jules.loader.MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(com.jules.loader.MainActivity.EXTRA_SIMULATE_NO_SIGNAL, true)
+            }
+            startActivity(intent)
         }
     }
 

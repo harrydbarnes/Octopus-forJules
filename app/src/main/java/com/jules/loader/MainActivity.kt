@@ -79,6 +79,8 @@ class MainActivity : BaseActivity() {
         private const val KEY_NEXT_PAGE_TOKEN = "key_next_page_token"
         private const val KEY_STOP_TIME = "key_stop_time"
         private const val REFRESH_TIMEOUT_MS = 20000L
+        /** Intent extra: when `true`, immediately shows the no-signal error/game overlay. */
+        const val EXTRA_SIMULATE_NO_SIGNAL = "simulate_no_signal"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -242,6 +244,11 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         val shortenRepoNames = PreferenceUtils.isShortenRepoNamesEnabled(this)
@@ -255,6 +262,13 @@ class MainActivity : BaseActivity() {
         selectedRepo?.let { repo ->
             val displayRepo = PreferenceUtils.getDisplayRepoName(repo, shortenRepoNames)
             binding.chipRepo.text = displayRepo
+        }
+
+        // Debug: simulate no-signal error state from Settings
+        if (intent.getBooleanExtra(EXTRA_SIMULATE_NO_SIGNAL, false)) {
+            // Clear the extra so re-entry (e.g. screen rotation) doesn't re-trigger
+            intent.putExtra(EXTRA_SIMULATE_NO_SIGNAL, false)
+            showErrorWithGame("Debug: simulated no-signal error")
         }
 
         // Register network-available listener so we reload the moment signal returns

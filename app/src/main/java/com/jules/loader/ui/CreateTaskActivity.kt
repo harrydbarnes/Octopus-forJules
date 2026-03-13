@@ -56,6 +56,9 @@ class CreateTaskActivity : BaseActivity() {
         private const val ANIMATION_DURATION_MS = 200L
         // Interval for the "Listening." → ".." → "..." ellipsis animation
         private const val ELLIPSIS_INTERVAL_MS = 500L
+        // Delay after results arrive before the wave settles to flat and the sheet dismisses.
+        // Gives the user time to read their transcription and naturally pause between phrases.
+        private const val SETTLE_DISMISS_DELAY_MS = 2000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -442,10 +445,17 @@ class CreateTaskActivity : BaseActivity() {
         }
 
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
+            // RecognitionListener callbacks are dispatched on the main thread by Android's
+            // SpeechRecognizer, so pendingSettleRunnable access is safe without synchronization.
+            var pendingSettleRunnable: Runnable? = null
+
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {
                 isListening = true
                 originalTextBeforeSpeech = binding.taskInput.text?.toString() ?: ""
+                // Cancel any pending dismiss-settle from a previous result
+                pendingSettleRunnable?.let { wavyIndicator.removeCallbacks(it) }
+                pendingSettleRunnable = null
                 // Start animated ellipsis
                 dotCount = 1
                 tvStatus.removeCallbacks(ellipsisRunnable)
@@ -460,13 +470,16 @@ class CreateTaskActivity : BaseActivity() {
             }
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
+                // User paused — return to gentle resting ripple while results are processed.
+                // Do NOT settle to flat yet; the user may start speaking again.
                 tvStatus.removeCallbacks(ellipsisRunnable)
                 tvStatus.text = "Processing..."
-                wavyIndicator.stopListening()
+                wavyIndicator.returnToResting()
             }
             override fun onError(error: Int) {
                 isListening = false
                 tvStatus.removeCallbacks(ellipsisRunnable)
+                pendingSettleRunnable?.let { wavyIndicator.removeCallbacks(it) }
                 tvStatus.text = "Error"
                 dialog.dismiss()
             }
@@ -480,8 +493,11 @@ class CreateTaskActivity : BaseActivity() {
                 }
                 tvStatus.removeCallbacks(ellipsisRunnable)
                 tvStatus.text = "Done"
-                // stopListening triggers flat-settle; onSettledToFlat will dismiss
-                wavyIndicator.stopListening()
+                // Delay 2 s so the user can read their transcription before the wave settles
+                // and the sheet auto-dismisses. Settling to flat triggers onSettledToFlat → dismiss.
+                val settleRunnable = Runnable { wavyIndicator.stopListening() }
+                pendingSettleRunnable = settleRunnable
+                wavyIndicator.postDelayed(settleRunnable, SETTLE_DISMISS_DELAY_MS)
             }
             override fun onPartialResults(partialResults: Bundle?) {
                 val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)

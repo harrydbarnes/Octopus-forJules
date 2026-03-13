@@ -32,6 +32,8 @@
     <string name="setting_shorten_dates">Shorten Dates</string>
     <string name="setting_date_format_mmdd">Use MM/DD Date Format</string>
     <string name="setting_theme">App Theme</string>
+    <string name="setting_debug">Debug</string>
+    <string name="debug_test_octopus_game">Test Octopus Game (Simulate No Signal)</string>
     <string name="theme_octopus">Octopus</string>
     <string name="theme_squid">Squid</string>
     <string name="theme_cuttlefish">Cuttlefish</string>

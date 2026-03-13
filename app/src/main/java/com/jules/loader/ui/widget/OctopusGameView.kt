@@ -76,7 +76,7 @@ class OctopusGameView @JvmOverloads constructor(
     // ── Physics ─────────────────────────────────────────────────────────
 
     private val gravity = 1800f * dp
-    private val jumpVelocity = -490f * dp
+    private val jumpVelocity = -650f * dp
 
     // ── Paints ──────────────────────────────────────────────────────────
 

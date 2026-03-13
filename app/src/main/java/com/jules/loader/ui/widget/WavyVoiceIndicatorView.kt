@@ -160,6 +160,20 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
     }
 
     /**
+     * Returns the wave to the idle resting ripple without dismissing.
+     * Call during natural pauses between speech bursts — when the user
+     * has paused but recognition is still active (e.g. on [onEndOfSpeech]
+     * before [onResults] arrives).
+     */
+    fun returnToResting() {
+        listeningActive = false
+        settlingToFlat = false
+        targetAmplitudeDp = IDLE_AMPLITUDE_DP
+        targetCycles = IDLE_CYCLES
+        ensureChoreographerRunning()
+    }
+
+    /**
      * Volume input is intentionally ignored — the wave responds only to state
      * transitions (resting → listening → flat), not microphone level.
      */
