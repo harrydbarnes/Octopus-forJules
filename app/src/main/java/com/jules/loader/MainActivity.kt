@@ -60,6 +60,8 @@ class MainActivity : BaseActivity() {
     private var isLoadingMore = false
     private var shimmerAnimators: List<ObjectAnimator> = emptyList()
     private var retryJob: Job? = null
+    /** Tracks the active loadSessions coroutine so it can be cancelled in onPause(). */
+    private var loadSessionsJob: Job? = null
 
     /** Triggers an immediate reload when the device regains network access. */
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -281,6 +283,12 @@ class MainActivity : BaseActivity() {
         super.onPause()
         retryJob?.cancel()
         retryJob = null
+        // Cancel any in-flight loadSessions coroutine to prevent it from calling
+        // showErrorWithGame() (which applies blur) while the activity is paused.
+        // Blur applied during a paused state would still be present when the return
+        // transition runs, causing MaterialContainerTransform to crash on API 31+.
+        loadSessionsJob?.cancel()
+        loadSessionsJob = null
         try {
             val cm = getSystemService(ConnectivityManager::class.java)
             cm?.unregisterNetworkCallback(networkCallback)
@@ -292,6 +300,7 @@ class MainActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         retryJob?.cancel()
+        loadSessionsJob?.cancel()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -618,6 +627,7 @@ class MainActivity : BaseActivity() {
     private fun loadSessions(forceRefresh: Boolean = false) {
         retryJob?.cancel()
         retryJob = null
+        loadSessionsJob?.cancel()
         val isFirstLoad = !forceRefresh && !repository.hasCachedSessions()
         if (isFirstLoad) {
             binding.skeletonLayout.visibility = View.VISIBLE
@@ -631,7 +641,7 @@ class MainActivity : BaseActivity() {
             binding.reloadingIndicator.visibility = View.VISIBLE
         }
 
-        lifecycleScope.launch {
+        loadSessionsJob = lifecycleScope.launch {
             try {
                 isLoadingMore = true
                 val response = repository.getSessions(pageToken = null, forceRefresh = forceRefresh)

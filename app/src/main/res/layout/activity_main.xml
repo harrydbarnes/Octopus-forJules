@@ -202,7 +202,9 @@
                 <include layout="@layout/item_session_skeleton" />
             </LinearLayout>
 
-            <!-- Error / no-signal overlay: dims+blurs sessions behind it -->
+            <!-- Error / no-signal overlay: dims+blurs sessions behind it.
+                 clickable+focusable so ALL touches are consumed here and never
+                 reach the blurred RecyclerView beneath (would crash API 31+). -->
             <LinearLayout
                 android:id="@+id/errorContainer"
                 android:layout_width="match_parent"
@@ -212,6 +214,8 @@
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:paddingTop="34dp"
+                android:clickable="true"
+                android:focusable="true"
                 android:visibility="gone">
 
                 <!-- Friendly signal-loss message (hidden for "no sessions" case) -->
