@@ -58,7 +58,7 @@ class CreateTaskActivity : BaseActivity() {
         private const val ELLIPSIS_INTERVAL_MS = 500L
         // Delay after results arrive before the wave settles to flat and the sheet dismisses.
         // Gives the user time to read their transcription and naturally pause between phrases.
-        private const val SETTLE_DISMISS_DELAY_MS = 2000L
+        private const val SETTLE_DISMISS_DELAY_MS = 4000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
