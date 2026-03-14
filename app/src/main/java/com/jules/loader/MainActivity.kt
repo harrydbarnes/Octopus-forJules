@@ -282,6 +282,8 @@ class MainActivity : BaseActivity() {
 
     override fun onPause() {
         super.onPause()
+        retryJob?.cancel()
+        retryJob = null
         try {
             val cm = getSystemService(ConnectivityManager::class.java)
             cm?.unregisterNetworkCallback(networkCallback)
@@ -704,6 +706,8 @@ class MainActivity : BaseActivity() {
     }
 
     private fun hideErrorOverlay() {
+        // Only perform cleanup when the overlay is actually visible; skip on initial/normal loads.
+        if (binding.errorContainer.visibility != View.VISIBLE) return
         binding.octopusErrorGame.stopGame()
         // Animate the overlay fading out smoothly
         binding.errorContainer.animate()

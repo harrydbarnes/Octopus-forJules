@@ -53,7 +53,10 @@ class MorphingLoadingIndicator @JvmOverloads constructor(
 
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
-        if (visibility == VISIBLE) startAnimations() else stopAnimations()
+        // Use isShown to check whether this view and ALL its ancestors are visible.
+        // The raw `visibility` parameter only reflects the changed ancestor, not this view itself,
+        // so relying on it starts animations even when this view is still GONE.
+        if (isShown) startAnimations() else stopAnimations()
     }
 
     private fun startAnimations() {
