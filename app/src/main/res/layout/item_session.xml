@@ -55,6 +55,7 @@
                         android:layout_height="wrap_content"
                         tools:text="Source"
                         style="@style/Widget.Material3.Chip.Assist"
+                        android:textSize="15sp"
                         android:layout_marginEnd="8dp"/>
 
                     <com.google.android.material.chip.Chip
@@ -62,7 +63,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="19th Jan"
-                        style="@style/Widget.Material3.Chip.Assist" />
+                        style="@style/Widget.Material3.Chip.Assist"
+                        android:textSize="15sp" />
                 </LinearLayout>
             </HorizontalScrollView>
 

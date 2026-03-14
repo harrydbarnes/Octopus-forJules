@@ -16,15 +16,15 @@ import kotlin.math.sin
  * A Material 3 Expressive-style wavy linear voice indicator.
  *
  * States:
- *  1. **Resting** – as soon as the view attaches: gentle idle ripple, always
- *     animating so the wave is visible before the first word is spoken.
- *  2. **Listening** – after [startListening]: amplitude increases slightly to
- *     signal active listening; phase scrolls a touch faster.
+ *  1. **Resting** – as soon as the view attaches (and during mid-speech pauses):
+ *     gentle idle ripple; always animating so the wave is visible before first word.
+ *  2. **Listening** – after [startListening]: wave rises to a taller, faster
+ *     amplitude to signal active recognition.
  *  3. **Settling** – after [stopListening]: wave morphs back to flat before
  *     [onSettledToFlat] fires, allowing the host to dismiss the sheet.
  *
- * Volume input ([setAmplitude]) is intentionally ignored — the wave is driven
- * by state transitions only, not by microphone level.
+ * Volume input ([setAmplitude]) is intentionally a no-op — the wave is driven
+ * by state transitions only (resting ↔ listening), not by microphone level.
  *
  * Amplitude & cycle-count use fast-attack / slow-decay exponential smoothing
  * driven by [Choreographer.FrameCallback] for frame-rate-independent rendering.
@@ -137,15 +137,15 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
 
     /**
      * Call when speech recognition begins.
-     * Marks the view as active; [setAmplitude] will now drive the wave height
-     * in real-time from microphone volume, rising when the user speaks and
-     * falling back to the idle ripple when they pause between words.
+     * Immediately transitions the wave to the taller listening state.
+     * The wave will return to resting via [returnToResting] on mid-speech pauses,
+     * and back to listening again on [startListening] when speech resumes.
      */
     fun startListening() {
         listeningActive = true
         settlingToFlat = false
-        // Start at idle amplitude — setAmplitude() will raise it as the user speaks
-        targetAmplitudeDp = IDLE_AMPLITUDE_DP
+        // Jump straight to the listening amplitude — no dynamic volume reactivity needed
+        targetAmplitudeDp = LISTENING_AMPLITUDE_DP
         targetCycles = IDLE_CYCLES
         ensureChoreographerRunning()
     }
@@ -176,19 +176,12 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
     }
 
     /**
-     * Drive the wave in real-time from mic volume (called from onRmsChanged).
-     * When volume exceeds the threshold, the wave rises to the listening state.
-     * When volume drops (user pauses between words), the wave immediately returns
-     * to the resting ripple — animating per word like a radio wave.
+     * No-op. Volume reactivity is intentionally removed — the wave is state-driven only
+     * (resting ↔ listening) and does not dynamically react to mic level.
      */
+    @Suppress("UNUSED_PARAMETER")
     fun setAmplitude(normalizedLevel: Float) {
-        if (!listeningActive || settlingToFlat) return
-        targetAmplitudeDp = if (normalizedLevel > AMPLITUDE_THRESHOLD) {
-            LISTENING_AMPLITUDE_DP
-        } else {
-            IDLE_AMPLITUDE_DP
-        }
-        ensureChoreographerRunning()
+        // Intentionally empty — state-only wave
     }
 
     private fun ensureChoreographerRunning() {
@@ -263,8 +256,6 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
         private const val TARGET_FPS = 60f
         private const val SNAP_THRESHOLD_DP = 0.05f
         private const val FRAME_TIME_MS = 16f
-        /** Normalised mic level (0..1) above which the wave enters listening state. */
-        private const val AMPLITUDE_THRESHOLD = 0.15f
         private val TWO_PI = (2.0 * Math.PI).toFloat()
     }
 }
