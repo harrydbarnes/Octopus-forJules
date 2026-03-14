@@ -239,6 +239,10 @@ class OctopusGameView @JvmOverloads constructor(
 
     fun stopGame() {
         gameRunning = false
+        waitingToPlay = false
+        choreographerRunning = false
+        Choreographer.getInstance().removeFrameCallback(frameCallback)
+        lastFrameTimeNanos = 0L
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {

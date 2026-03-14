@@ -3,7 +3,6 @@ package com.jules.loader
 import android.content.Intent
 import android.graphics.RenderEffect
 import android.graphics.Shader
-import android.animation.ValueAnimator
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -709,6 +708,14 @@ class MainActivity : BaseActivity() {
         // Only perform cleanup when the overlay is actually visible; skip on initial/normal loads.
         if (binding.errorContainer.visibility != View.VISIBLE) return
         binding.octopusErrorGame.stopGame()
+
+        // Remove the blur IMMEDIATELY so that any shared-element transitions launched in the same
+        // frame (e.g. tapping a session card right as the data arrives) don't see a blurred
+        // RecyclerView — that combination crashes MaterialContainerTransform on API 31+.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(null)
+        }
+
         // Animate the overlay fading out smoothly
         binding.errorContainer.animate()
             .alpha(0f)
@@ -719,23 +726,6 @@ class MainActivity : BaseActivity() {
                 binding.gameBottomArea.visibility = View.GONE
             }
             .start()
-        // Simultaneously un-blur the content behind (API 31+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ValueAnimator.ofFloat(20f, 0f).apply {
-                duration = 400L
-                addUpdateListener { animator ->
-                    val blurRadius = animator.animatedValue as Float
-                    if (blurRadius > 0.5f) {
-                        binding.sessionsRecyclerView.setRenderEffect(
-                            RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
-                        )
-                    } else {
-                        binding.sessionsRecyclerView.setRenderEffect(null)
-                    }
-                }
-                start()
-            }
-        }
     }
 
     private fun showErrorWithGame(message: String) {
