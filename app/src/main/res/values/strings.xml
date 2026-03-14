@@ -34,6 +34,7 @@
     <string name="setting_theme">App Theme</string>
     <string name="setting_debug">Debug</string>
     <string name="debug_test_octopus_game">Test Octopus Game (Simulate No Signal)</string>
+    <string name="debug_simulate_no_signal_message">Debug: simulated no-signal error</string>
     <string name="theme_octopus">Octopus</string>
     <string name="theme_squid">Squid</string>
     <string name="theme_cuttlefish">Cuttlefish</string>
@@ -70,7 +71,15 @@
     <string name="onboarding_theme_desc">Select a look that suits you.</string>
 
     <string name="error_signal_message">No Internet Connectivity</string>
-    <string name="game_tap_to_restart">Tap here to restart</string>
+    <string name="game_tap_to_restart">Tap to restart</string>
+    <string name="game_over_label">GAME OVER</string>
+    <string name="game_tap_to_play">TAP TO PLAY</string>
+    <string name="game_time_prefix">Time: %1$s</string>
+    <string name="game_best_prefix">Best: %1$s</string>
+    <string name="voice_status_listening">Listening</string>
+    <string name="voice_status_processing">Processing&#8230;</string>
+    <string name="voice_status_error">Error</string>
+    <string name="voice_status_done">Done</string>
 
     <!-- Main Activity -->
     <string name="sessions_title">jules sessions</string>

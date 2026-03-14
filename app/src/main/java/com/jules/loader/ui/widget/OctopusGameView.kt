@@ -98,6 +98,59 @@ class OctopusGameView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
+    // ── Preallocated draw objects (reused every frame to avoid GC churn) ──
+
+    /** Reusable octopus hit-box for collision detection in updateGame(). */
+    private val octRect = RectF()
+    /** Reusable obstacle hit-box for collision detection in updateGame(). */
+    private val obsRect = RectF()
+    /** Reusable RectF for the rounded-corner clip path in onDraw(). */
+    private val clipRectF = RectF()
+    /** Reusable clip path for rounded corners. */
+    private val clipPath = Path()
+    /** Sand-dot paint, initialised once and reused every frame. */
+    private val sandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(60, 139, 119, 80)
+        style = Paint.Style.FILL
+    }
+    /** Eye-white paint for the octopus, allocated once. */
+    private val eyePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+    }
+    /** Eye-pupil paint for the octopus, allocated once. */
+    private val pupilPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        style = Paint.Style.FILL
+    }
+    /** Coral-branch paint, allocated once and its colour is set per draw. */
+    private val branchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(220, 255, 100, 60)
+        style = Paint.Style.FILL
+    }
+    /** Rock fill paint, allocated once. */
+    private val rockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(200, 100, 100, 100)
+        style = Paint.Style.FILL
+    }
+    /** Reusable rock path (cleared on each drawObstacle call). */
+    private val rockPath = Path()
+    /** Tall-seaweed obstacle paint, allocated once. */
+    private val swObstaclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(200, 0, 120, 60)
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
+    /** Reusable tall-seaweed obstacle path (cleared on each drawObstacle call). */
+    private val swObstaclePath = Path()
+    /** Game-over hint text paint (smaller, subdued), allocated once. */
+    private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(180, 255, 255, 255)
+        textAlign = Paint.Align.CENTER
+    }
+    /** Reusable RectF used for drawing obstacle rounded rectangles. */
+    private val obstacleRectF = RectF()
+
     // ── Choreographer ───────────────────────────────────────────────────
 
     private var choreographerRunning = false
@@ -179,6 +232,9 @@ class OctopusGameView @JvmOverloads constructor(
         gameOverPaint.textAlign = Paint.Align.CENTER
         gameOverPaint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
         gameOverPaint.letterSpacing = 0.15f
+
+        hintPaint.textSize = 12f * dp
+        hintPaint.isFakeBoldText = true
     }
 
     // ── Lifecycle ───────────────────────────────────────────────────────
@@ -342,11 +398,11 @@ class OctopusGameView @JvmOverloads constructor(
                 continue
             }
             // Collision detection
-            val octRect = RectF(
+            octRect.set(
                 octopusX + 4f * dp, octopusY + 4f * dp,
                 octopusX + octopusSize - 4f * dp, octopusY + octopusSize - 4f * dp
             )
-            val obsRect = RectF(
+            obsRect.set(
                 obs.x, floorY - obs.height,
                 obs.x + obs.width, floorY
             )
@@ -382,9 +438,10 @@ class OctopusGameView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
 
-        // Clip to rounded corners
-        val clipPath = Path()
-        clipPath.addRoundRect(RectF(0f, 0f, w, h), CORNER_RADIUS_DP * dp, CORNER_RADIUS_DP * dp, Path.Direction.CW)
+        // Clip to rounded corners — reuse preallocated clipPath/clipRectF
+        clipRectF.set(0f, 0f, w, h)
+        clipPath.reset()
+        clipPath.addRoundRect(clipRectF, CORNER_RADIUS_DP * dp, CORNER_RADIUS_DP * dp, Path.Direction.CW)
         canvas.clipPath(clipPath)
 
         // Ocean background
@@ -398,11 +455,7 @@ class OctopusGameView @JvmOverloads constructor(
 
         // Sandy floor
         canvas.drawRect(0f, floorY, w, h, floorPaint)
-        // Floor sand dots
-        val sandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(60, 139, 119, 80)
-            style = Paint.Style.FILL
-        }
+        // Floor sand dots (reuse preallocated sandPaint)
         var dotX = (-(scrollOffset * 0.5f) % (30f * dp) + 30f * dp) % (30f * dp)
         while (dotX < w) {
             canvas.drawCircle(dotX, floorY + 8f * dp, 2f * dp, sandPaint)
@@ -428,7 +481,7 @@ class OctopusGameView @JvmOverloads constructor(
             val timerText = formatTime(elapsedTime)
             canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
 
-            val bestText = "Best: ${formatTime(highScore.toFloat())}"
+            val bestText = context.getString(com.jules.loader.R.string.game_best_prefix, formatTime(highScore.toFloat()))
             val bestWidth = scorePaint.measureText(bestText)
             canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
         }
@@ -437,24 +490,22 @@ class OctopusGameView @JvmOverloads constructor(
         if (gameOver) {
             overlayPaint.color = Color.argb(120, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("GAME OVER", w / 2f, h / 2f, gameOverPaint)
-            canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
-                textAlign = Paint.Align.CENTER
-            })
-            // Restart hint (smaller, subdued)
-            val hintPaint = Paint(scorePaint).apply {
-                textSize = 12f * dp
-                color = Color.argb(180, 255, 255, 255)
-            }
-            canvas.drawText("Tap to restart", w / 2f, h / 2f + 52f * dp, hintPaint)
-            scorePaint.textAlign = Paint.Align.LEFT // reset
+            canvas.drawText(context.getString(com.jules.loader.R.string.game_over_label), w / 2f, h / 2f, gameOverPaint)
+            scorePaint.textAlign = Paint.Align.CENTER
+            canvas.drawText(
+                context.getString(com.jules.loader.R.string.game_time_prefix, formatTime(elapsedTime)),
+                w / 2f, h / 2f + 30f * dp, scorePaint
+            )
+            scorePaint.textAlign = Paint.Align.LEFT
+            // Restart hint (smaller, subdued) — reuse preallocated hintPaint
+            canvas.drawText(context.getString(com.jules.loader.R.string.game_tap_to_restart), w / 2f, h / 2f + 52f * dp, hintPaint)
         }
 
         // Tap to play overlay (shown before first game start)
         if (waitingToPlay) {
             overlayPaint.color = Color.argb(100, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("TAP TO PLAY", w / 2f, h / 2f, gameOverPaint)
+            canvas.drawText(context.getString(com.jules.loader.R.string.game_tap_to_play), w / 2f, h / 2f, gameOverPaint)
         }
     }
 
@@ -491,15 +542,7 @@ class OctopusGameView @JvmOverloads constructor(
             octopusPaint
         )
 
-        // Eyes
-        val eyePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
-        val pupilPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.BLACK
-            style = Paint.Style.FILL
-        }
+        // Eyes — reuse preallocated eyePaint / pupilPaint
         val eyeR = bodyRx * 0.22f
         val eyeOffX = bodyRx * 0.35f
         val eyeY = cy - bodyRy * 0.1f
@@ -517,48 +560,34 @@ class OctopusGameView @JvmOverloads constructor(
 
         when (obs.type) {
             0 -> {
-                // Coral: rounded rectangle with branching top
-                val rect = RectF(left, top, right, bottom)
-                canvas.drawRoundRect(rect, 6f * dp, 6f * dp, obstaclePaint)
+                // Coral: rounded rectangle with branching top — reuse obstacleRectF and branchPaint
+                obstacleRectF.set(left, top, right, bottom)
+                canvas.drawRoundRect(obstacleRectF, 6f * dp, 6f * dp, obstaclePaint)
                 // Branch tops
-                val branchPaint = Paint(obstaclePaint).apply {
-                    color = Color.argb(220, 255, 100, 60)
-                }
                 canvas.drawCircle(left + obs.width * 0.3f, top - 4f * dp, 6f * dp, branchPaint)
                 canvas.drawCircle(left + obs.width * 0.7f, top - 2f * dp, 5f * dp, branchPaint)
             }
             1 -> {
-                // Rock: triangle-ish shape
-                val rockPath = Path().apply {
-                    moveTo(left, bottom)
-                    lineTo(left + obs.width * 0.5f, top)
-                    lineTo(right, bottom)
-                    close()
-                }
-                val rockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.argb(200, 100, 100, 100)
-                    style = Paint.Style.FILL
-                }
+                // Rock: triangle-ish shape — reuse rockPath and rockPaint
+                rockPath.reset()
+                rockPath.moveTo(left, bottom)
+                rockPath.lineTo(left + obs.width * 0.5f, top)
+                rockPath.lineTo(right, bottom)
+                rockPath.close()
                 canvas.drawPath(rockPath, rockPaint)
             }
             else -> {
-                // Tall seaweed obstacle
-                val swPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.argb(200, 0, 120, 60)
-                    style = Paint.Style.STROKE
-                    strokeWidth = obs.width * 0.4f
-                    strokeCap = Paint.Cap.ROUND
-                }
-                val swPath = Path().apply {
-                    moveTo(left + obs.width / 2f, bottom)
-                    val midY = (top + bottom) / 2f
-                    cubicTo(
-                        left + obs.width * 1.2f, midY + obs.height * 0.2f,
-                        left - obs.width * 0.2f, midY - obs.height * 0.2f,
-                        left + obs.width / 2f, top
-                    )
-                }
-                canvas.drawPath(swPath, swPaint)
+                // Tall seaweed obstacle — reuse swObstaclePaint/swObstaclePath
+                swObstaclePaint.strokeWidth = obs.width * 0.4f
+                swObstaclePath.reset()
+                swObstaclePath.moveTo(left + obs.width / 2f, bottom)
+                val midY = (top + bottom) / 2f
+                swObstaclePath.cubicTo(
+                    left + obs.width * 1.2f, midY + obs.height * 0.2f,
+                    left - obs.width * 0.2f, midY - obs.height * 0.2f,
+                    left + obs.width / 2f, top
+                )
+                canvas.drawPath(swObstaclePath, swObstaclePaint)
             }
         }
     }

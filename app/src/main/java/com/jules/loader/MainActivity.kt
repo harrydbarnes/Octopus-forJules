@@ -246,6 +246,8 @@ class MainActivity : BaseActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        // Handle simulate-no-signal from Settings when the activity is already running
+        handleSimulateNoSignal(intent)
     }
 
     override fun onResume() {
@@ -264,11 +266,7 @@ class MainActivity : BaseActivity() {
         }
 
         // Debug: simulate no-signal error state from Settings
-        if (intent.getBooleanExtra(EXTRA_SIMULATE_NO_SIGNAL, false)) {
-            // Clear the extra so re-entry (e.g. screen rotation) doesn't re-trigger
-            intent.putExtra(EXTRA_SIMULATE_NO_SIGNAL, false)
-            showErrorWithGame("Debug: simulated no-signal error")
-        }
+        handleSimulateNoSignal(intent)
 
         // Register network-available listener so we reload the moment signal returns
         try {
@@ -664,7 +662,7 @@ class MainActivity : BaseActivity() {
                     }
                 }
             } catch (e: java.io.IOException) {
-                showErrorWithGame(getString(R.string.error_loading_sessions, e.localizedMessage))
+                showErrorWithGame(getString(R.string.error_loading_sessions, e.localizedMessage), isNetworkError = true)
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
                 // Poor signal: auto-retry every 10s if network is still available
                 scheduleAutoRetry()
@@ -704,6 +702,19 @@ class MainActivity : BaseActivity() {
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
+    /**
+     * Checks the given [intent] for [EXTRA_SIMULATE_NO_SIGNAL] and shows the game overlay if
+     * present. Called from both [onResume] and [onNewIntent] so the debug flow works whether
+     * the activity is cold-started or already running.
+     */
+    private fun handleSimulateNoSignal(intent: Intent) {
+        if (intent.getBooleanExtra(EXTRA_SIMULATE_NO_SIGNAL, false)) {
+            // Clear the extra so re-entry (e.g. screen rotation) doesn't re-trigger
+            intent.putExtra(EXTRA_SIMULATE_NO_SIGNAL, false)
+            showErrorWithGame(getString(R.string.debug_simulate_no_signal_message), isNetworkError = true)
+        }
+    }
+
     private fun hideErrorOverlay() {
         // Only perform cleanup when the overlay is actually visible; skip on initial/normal loads.
         if (binding.errorContainer.visibility != View.VISIBLE) return
@@ -728,18 +739,21 @@ class MainActivity : BaseActivity() {
             .start()
     }
 
-    private fun showErrorWithGame(message: String) {
+    private fun showErrorWithGame(message: String, isNetworkError: Boolean = false) {
         binding.errorText.text = message
         binding.errorText.setTextColor(
             androidx.core.content.ContextCompat.getColor(this, R.color.error_overlay_text_subdued)
         )
-        binding.errorSignalMessage.visibility = View.VISIBLE
+        // Only show the "No Internet Connectivity" banner for actual network failures
+        binding.errorSignalMessage.visibility = if (isNetworkError) View.VISIBLE else View.GONE
         binding.octopusErrorGame.visibility = View.VISIBLE
         binding.gameBottomArea.visibility = View.VISIBLE
         binding.errorContainer.setBackgroundColor(
             androidx.core.content.ContextCompat.getColor(this, R.color.error_overlay_background)
         )
-        // Reset alpha in case a previous hide-animation is still running
+        // Cancel any in-flight hide-animation so its end-action can't hide the overlay
+        // after we have just re-shown it.
+        binding.errorContainer.animate().cancel()
         binding.errorContainer.alpha = 1f
         binding.errorContainer.visibility = View.VISIBLE
         // Sessions RecyclerView stays visible behind the dim+blur overlay when sessions exist
