@@ -26,6 +26,7 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import com.google.android.material.snackbar.Snackbar
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.jules.loader.data.JulesRepository
@@ -289,6 +290,15 @@ class MainActivity : BaseActivity() {
         // transition runs, causing MaterialContainerTransform to crash on API 31+.
         loadSessionsJob?.cancel()
         loadSessionsJob = null
+        // Defensively remove any RenderEffect from the RecyclerView before yielding focus.
+        // The shared-element capture for MaterialContainerTransform happens AFTER onPause()
+        // completes. A background loadSessions() coroutine can finish with an IOException
+        // between startActivity() returning and onPause() being called, causing
+        // showErrorWithGame() to apply blur at that narrow window. Clearing it here ensures
+        // the RecyclerView is always blur-free when the transition capture runs on API 31+.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(null)
+        }
         try {
             val cm = getSystemService(ConnectivityManager::class.java)
             cm?.unregisterNetworkCallback(networkCallback)
@@ -769,8 +779,13 @@ class MainActivity : BaseActivity() {
         // Sessions RecyclerView stays visible behind the dim+blur overlay when sessions exist
         binding.sessionsRecyclerView.visibility = View.VISIBLE
 
-        // Blur the content behind the overlay (API 31+; dim alone as fallback on older devices)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Blur the content behind the overlay (API 31+; dim alone as fallback on older devices).
+        // Only apply when the activity is in the RESUMED state — a background coroutine can
+        // call this method in the narrow window between startActivity() and onPause(), so we
+        // skip the blur if we're no longer in the foreground to avoid affecting the
+        // shared-element transition capture that runs after onPause().
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
             binding.sessionsRecyclerView.setRenderEffect(
                 RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
             )
