@@ -125,7 +125,7 @@ class SettingsActivity : BaseActivity() {
             progressBar.visibility = View.VISIBLE
             input.isEnabled = false
 
-            lifecycleScope.launchWhenStarted {
+            lifecycleScope.launch {
                 val isValid = repository.validateApiKey(newKey)
                 if (isValid) {
                     repository.saveApiKey(newKey)

@@ -242,7 +242,7 @@ class OnboardingActivity : BaseActivity() {
                     // Validate
                     setLoading(true)
 
-                    activity.lifecycleScope.launchWhenStarted {
+                    activity.lifecycleScope.launch {
                         val isValid = activity.repository.validateApiKey(key)
                         if (isValid) {
                             activity.repository.saveApiKey(key)

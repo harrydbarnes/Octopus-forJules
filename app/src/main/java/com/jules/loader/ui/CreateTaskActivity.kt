@@ -2,8 +2,6 @@ package com.jules.loader.ui
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.drawable.ClipDrawable
-import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -24,11 +22,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.transition.platform.MaterialContainerTransform
-import com.google.android.material.internal.CheckableImageButton
 import com.google.android.material.transition.platform.MaterialContainerTransformSharedElementCallback
 import com.jules.loader.R
 import com.jules.loader.data.JulesRepository
-import com.jules.loader.data.model.SourceContext
 import com.jules.loader.databinding.ActivityCreateTaskBinding
 import com.jules.loader.util.PreferenceUtils
 import kotlinx.coroutines.flow.collectLatest
@@ -50,9 +46,6 @@ class CreateTaskActivity : BaseActivity() {
     companion object {
         private val TAG = CreateTaskActivity::class.java.simpleName
         private const val PERMISSION_REQUEST_AUDIO = 100
-        private const val MIN_DB_LEVEL = -2f
-        private const val MAX_DB_LEVEL = 10f
-        private const val DB_LEVEL_RANGE = MAX_DB_LEVEL - MIN_DB_LEVEL
         private const val ANIMATION_DURATION_MS = 200L
         // Interval for the "Listening." → ".." → "..." ellipsis animation
         private const val ELLIPSIS_INTERVAL_MS = 500L
@@ -466,9 +459,7 @@ class CreateTaskActivity : BaseActivity() {
                 wavyIndicator.startListening()
             }
             override fun onRmsChanged(rmsdB: Float) {
-                val clampedDb = rmsdB.coerceIn(MIN_DB_LEVEL, MAX_DB_LEVEL)
-                val normalised = (clampedDb - MIN_DB_LEVEL) / DB_LEVEL_RANGE
-                wavyIndicator.setAmplitude(normalised)
+                // setAmplitude() is a no-op — wave is state-driven only
             }
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {

@@ -172,7 +172,8 @@ class MainActivity : BaseActivity() {
             }
 
             override fun onSwiped(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
+                val position = viewHolder.bindingAdapterPosition
+                if (position == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return
                 val session = adapter.currentList[position]
                 confirmArchiveSession(session, position)
             }
