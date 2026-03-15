@@ -71,6 +71,13 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
         }
     }
 
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        super.onViewRecycled(holder)
+        if (holder is SessionViewHolder) {
+            holder.cancelScrollAnimation()
+        }
+    }
+
     class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
 
     class SessionViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -83,14 +90,21 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
         private val badgeScrollView: HorizontalScrollView = itemView.findViewById(R.id.badgeScrollView)
         private var badgeScrollAnimator: ValueAnimator? = null
 
+        init {
+            // Set chip text sizes once in the constructor rather than on every bind call
+            sourceChip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11f)
+            dateChip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11f)
+        }
+
+        fun cancelScrollAnimation() {
+            badgeScrollAnimator?.cancel()
+            badgeScrollAnimator = null
+        }
+
         fun bind(session: Session, shortenRepoNames: Boolean, shortenDates: Boolean = true, useMmDd: Boolean = false) {
             val context = itemView.context
             title.text = session.title ?: context.getString(R.string.untitled_session)
             prompt.text = session.prompt ?: context.getString(R.string.no_prompt)
-
-            // Slightly smaller text for source/date badge chips
-            sourceChip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11f)
-            dateChip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11f)
 
             val statusRaw = session.status ?: "Idle"
             val status = statusRaw.replace("_", " ")
@@ -133,8 +147,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
             }
 
             // Reset and re-evaluate scroll animation for source+date chips
-            badgeScrollAnimator?.cancel()
-            badgeScrollAnimator = null
+            cancelScrollAnimation()
             badgeScrollView.scrollX = 0
 
             // Token to ensure animation only starts for the current binding

@@ -59,6 +59,8 @@ class MainActivity : BaseActivity() {
     private var retryJob: Job? = null
     /** Tracks the active loadSessions coroutine so it can be cancelled in onPause(). */
     private var loadSessionsJob: Job? = null
+    /** Tracks the active loadMoreSessions coroutine so it can be cancelled in onPause(). */
+    private var loadMoreSessionsJob: Job? = null
 
     /** Triggers an immediate reload when the device regains network access. */
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -284,6 +286,8 @@ class MainActivity : BaseActivity() {
         // showErrorWithGame() while the activity is paused.
         loadSessionsJob?.cancel()
         loadSessionsJob = null
+        loadMoreSessionsJob?.cancel()
+        loadMoreSessionsJob = null
         // Stop the game when leaving this activity to free Choreographer resources.
         if (binding.errorContainer.visibility == View.VISIBLE) {
             binding.octopusErrorGame.stopGame()
@@ -300,6 +304,7 @@ class MainActivity : BaseActivity() {
         super.onDestroy()
         retryJob?.cancel()
         loadSessionsJob?.cancel()
+        loadMoreSessionsJob?.cancel()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -564,9 +569,7 @@ class MainActivity : BaseActivity() {
             gravity = android.view.Gravity.CENTER_VERTICAL
             val padLarge = resources.getDimensionPixelSize(R.dimen.dialog_padding_large)
             setPadding(padLarge, padLarge, padLarge, padLarge)
-            addView(com.google.android.material.progressindicator.CircularProgressIndicator(this@MainActivity).apply {
-                isIndeterminate = true
-            })
+            addView(com.jules.loader.ui.widget.MorphingLoadingIndicator(this@MainActivity))
             addView(android.widget.TextView(this@MainActivity).apply {
                 text = getString(R.string.dialog_wait_message)
                 val padStart = resources.getDimensionPixelSize(R.dimen.dialog_text_padding_start)
@@ -810,7 +813,8 @@ class MainActivity : BaseActivity() {
         isLoadingMore = true
         adapter.setLoading(true)
 
-        lifecycleScope.launch {
+        loadMoreSessionsJob?.cancel()
+        loadMoreSessionsJob = lifecycleScope.launch {
             try {
                 val response = repository.getSessions(pageToken = nextPageToken)
                 val newSessions = response.sessions ?: emptyList()

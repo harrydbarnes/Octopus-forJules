@@ -150,6 +150,8 @@ class OctopusGameView @JvmOverloads constructor(
     }
     /** Reusable RectF used for drawing obstacle rounded rectangles. */
     private val obstacleRectF = RectF()
+    /** Reusable path for background seaweed, cleared and reused on each blade per frame. */
+    private val seaweedPath = Path()
 
     // ── Choreographer ───────────────────────────────────────────────────
 
@@ -593,17 +595,17 @@ class OctopusGameView @JvmOverloads constructor(
     }
 
     private fun drawSeaweed(canvas: Canvas, x: Float, groundY: Float) {
-        val swPath = Path()
         val swHeight = 30f * dp + sin((x * 0.1f).toDouble()).toFloat() * 15f * dp
-        swPath.moveTo(x, groundY)
+        seaweedPath.reset()
+        seaweedPath.moveTo(x, groundY)
         val segments = 5
         for (i in 1..segments) {
             val frac = i.toFloat() / segments
             val sx = x + sin((tentaclePhase * 0.5f + x * 0.01f + i).toDouble()).toFloat() * 8f * dp
             val sy = groundY - swHeight * frac
-            swPath.lineTo(sx, sy)
+            seaweedPath.lineTo(sx, sy)
         }
-        canvas.drawPath(swPath, seaweedPaint)
+        canvas.drawPath(seaweedPath, seaweedPaint)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

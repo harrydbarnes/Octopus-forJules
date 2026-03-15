@@ -224,10 +224,10 @@ class CreateTaskActivity : BaseActivity() {
                 launch {
                     viewModel.isBranchesLoading.collectLatest { isLoading ->
                         if (isLoading) {
-                            binding.branchInputLayout.hint = "Loading branches..."
+                            binding.branchInputLayout.hint = getString(R.string.branch_hint_loading)
                             binding.branchInputLayout.isEnabled = false
                         } else {
-                            binding.branchInputLayout.hint = "Branch (Optional)"
+                            binding.branchInputLayout.hint = getString(R.string.branch_hint_optional)
                             binding.branchInputLayout.isEnabled = true
                         }
                     }
@@ -241,7 +241,7 @@ class CreateTaskActivity : BaseActivity() {
 
                 launch {
                     viewModel.taskCreatedEvent.collect {
-                        Toast.makeText(this@CreateTaskActivity, "Task started successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@CreateTaskActivity, R.string.task_started_successfully, Toast.LENGTH_SHORT).show()
                         finish()
                     }
                 }

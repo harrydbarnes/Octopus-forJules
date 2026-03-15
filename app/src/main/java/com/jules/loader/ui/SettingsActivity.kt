@@ -10,7 +10,9 @@ import android.widget.Button
 import com.jules.loader.ui.widget.MorphingLoadingIndicator
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -125,18 +127,20 @@ class SettingsActivity : BaseActivity() {
             progressBar.visibility = View.VISIBLE
             input.isEnabled = false
 
-            lifecycleScope.launchWhenStarted {
-                val isValid = repository.validateApiKey(newKey)
-                if (isValid) {
-                    repository.saveApiKey(newKey)
-                    setupApiKeySection()
-                    Toast.makeText(this@SettingsActivity, getString(R.string.message_api_key_updated), Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
-                } else {
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                    progressBar.visibility = View.GONE
-                    input.isEnabled = true
-                    Toast.makeText(this@SettingsActivity, getString(R.string.error_api_key_invalid), Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    val isValid = repository.validateApiKey(newKey)
+                    if (isValid) {
+                        repository.saveApiKey(newKey)
+                        setupApiKeySection()
+                        Toast.makeText(this@SettingsActivity, getString(R.string.message_api_key_updated), Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    } else {
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        progressBar.visibility = View.GONE
+                        input.isEnabled = true
+                        Toast.makeText(this@SettingsActivity, getString(R.string.error_api_key_invalid), Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }

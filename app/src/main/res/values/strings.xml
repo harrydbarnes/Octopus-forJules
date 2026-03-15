@@ -177,5 +177,7 @@
     <string name="plan_approval_approve">Approve Plan</string>
     <string name="plan_approval_success">Plan approved</string>
     <string name="error_approve_plan">Failed to approve plan</string>
-    <string name="action_dismiss">Dismiss</string>
+    <string name="branch_hint_loading">Loading branches&#8230;</string>
+    <string name="branch_hint_optional">Branch (Optional)</string>
+    <string name="task_started_successfully">Task started successfully</string>
 </resources>
