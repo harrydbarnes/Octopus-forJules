@@ -1,14 +1,11 @@
 package com.jules.loader
 
 import android.content.Intent
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -26,7 +23,6 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import com.google.android.material.snackbar.Snackbar
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.jules.loader.data.JulesRepository
@@ -212,12 +208,6 @@ class MainActivity : BaseActivity() {
             val options = android.app.ActivityOptions.makeSceneTransitionAnimation(
                 this, binding.fab, "shared_element_container"
             )
-            // Clear any RenderEffect blur before the shared-element transition capture.
-            // MaterialContainerTransform captures the source view synchronously inside
-            // startActivity() — before onPause() — so blur must be cleared here.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                binding.sessionsRecyclerView.setRenderEffect(null)
-            }
             startActivity(intent, options.toBundle())
         }
 
@@ -291,19 +281,12 @@ class MainActivity : BaseActivity() {
         retryJob?.cancel()
         retryJob = null
         // Cancel any in-flight loadSessions coroutine to prevent it from calling
-        // showErrorWithGame() (which applies blur) while the activity is paused.
-        // Blur applied during a paused state would still be present when the return
-        // transition runs, causing MaterialContainerTransform to crash on API 31+.
+        // showErrorWithGame() while the activity is paused.
         loadSessionsJob?.cancel()
         loadSessionsJob = null
-        // Defensively remove any RenderEffect from the RecyclerView before yielding focus.
-        // The shared-element capture for MaterialContainerTransform happens AFTER onPause()
-        // completes. A background loadSessions() coroutine can finish with an IOException
-        // between startActivity() returning and onPause() being called, causing
-        // showErrorWithGame() to apply blur at that narrow window. Clearing it here ensures
-        // the RecyclerView is always blur-free when the transition capture runs on API 31+.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            binding.sessionsRecyclerView.setRenderEffect(null)
+        // Stop the game when leaving this activity to free Choreographer resources.
+        if (binding.errorContainer.visibility == View.VISIBLE) {
+            binding.octopusErrorGame.stopGame()
         }
         try {
             val cm = getSystemService(ConnectivityManager::class.java)
@@ -746,13 +729,6 @@ class MainActivity : BaseActivity() {
         if (binding.errorContainer.visibility != View.VISIBLE) return
         binding.octopusErrorGame.stopGame()
 
-        // Remove the blur IMMEDIATELY so that any shared-element transitions launched in the same
-        // frame (e.g. tapping a session card right as the data arrives) don't see a blurred
-        // RecyclerView — that combination crashes MaterialContainerTransform on API 31+.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            binding.sessionsRecyclerView.setRenderEffect(null)
-        }
-
         // Animate the overlay fading out smoothly
         binding.errorContainer.animate()
             .alpha(0f)
@@ -782,20 +758,8 @@ class MainActivity : BaseActivity() {
         binding.errorContainer.animate().cancel()
         binding.errorContainer.alpha = 1f
         binding.errorContainer.visibility = View.VISIBLE
-        // Sessions RecyclerView stays visible behind the dim+blur overlay when sessions exist
+        // Sessions RecyclerView stays visible behind the dim overlay when sessions exist
         binding.sessionsRecyclerView.visibility = View.VISIBLE
-
-        // Blur the content behind the overlay (API 31+; dim alone as fallback on older devices).
-        // Only apply when the activity is in the RESUMED state — a background coroutine can
-        // call this method in the narrow window between startActivity() and onPause(), so we
-        // skip the blur if we're no longer in the foreground to avoid affecting the
-        // shared-element transition capture that runs after onPause().
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-            binding.sessionsRecyclerView.setRenderEffect(
-                RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
-            )
-        }
 
         val gameView = binding.octopusErrorGame
         gameView.highScore = PreferenceUtils.getOctopusHighScore(this)
