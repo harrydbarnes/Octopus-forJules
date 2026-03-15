@@ -17,6 +17,7 @@ import com.jules.loader.util.PreferenceUtils
 
 import android.content.Intent
 import android.app.Activity
+import android.os.Build
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.app.ActivityOptionsCompat
 
@@ -176,6 +177,13 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
                         itemView,
                         "shared_element_container_${session.id}"
                     )
+                    // Clear any RenderEffect blur from the RecyclerView before the
+                    // shared-element transition capture. MaterialContainerTransform
+                    // captures the source view synchronously inside startActivity() —
+                    // before onPause() — so blur must be cleared here, not in onPause().
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        (itemView.parent as? RecyclerView)?.setRenderEffect(null)
+                    }
                     context.startActivity(intent, options.toBundle())
                 } else {
                     context.startActivity(intent)

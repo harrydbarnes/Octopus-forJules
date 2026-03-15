@@ -212,6 +212,12 @@ class MainActivity : BaseActivity() {
             val options = android.app.ActivityOptions.makeSceneTransitionAnimation(
                 this, binding.fab, "shared_element_container"
             )
+            // Clear any RenderEffect blur before the shared-element transition capture.
+            // MaterialContainerTransform captures the source view synchronously inside
+            // startActivity() — before onPause() — so blur must be cleared here.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                binding.sessionsRecyclerView.setRenderEffect(null)
+            }
             startActivity(intent, options.toBundle())
         }
 
