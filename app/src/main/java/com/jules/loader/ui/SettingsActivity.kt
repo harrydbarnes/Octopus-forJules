@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
@@ -17,6 +16,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.jules.loader.R
 import com.jules.loader.data.JulesRepository
 import com.jules.loader.databinding.ActivitySettingsBinding
+import com.jules.loader.ui.widget.MorphingLoadingIndicator
 import com.jules.loader.util.PreferenceUtils
 import com.jules.loader.util.ThemeUtils
 
@@ -58,7 +58,7 @@ class SettingsActivity : BaseActivity() {
         val layout = layoutInflater.inflate(R.layout.dialog_edit_api_key, null)
         val inputLayout = layout.findViewById<TextInputLayout>(R.id.apiKeyInputLayout)
         val input = layout.findViewById<TextInputEditText>(R.id.apiKeyInput)
-        val progressBar = layout.findViewById<ProgressBar>(R.id.progressBar)
+        val progressBar = layout.findViewById<MorphingLoadingIndicator>(R.id.progressBar)
 
         val apiKey = repository.getApiKey()
         if (!apiKey.isNullOrEmpty()) {
