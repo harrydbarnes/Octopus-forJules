@@ -94,7 +94,7 @@ class OctopusGameView @JvmOverloads constructor(
     private val seaweedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val gameOverPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val tapToPlayText: String
+    private val tapToPlayText: String = context.getString(com.jules.loader.R.string.game_tap_to_play)
 
     // ── Choreographer ───────────────────────────────────────────────────
 
@@ -161,8 +161,6 @@ class OctopusGameView @JvmOverloads constructor(
         gameOverPaint.letterSpacing = 0.15f
 
         overlayPaint.style = Paint.Style.FILL
-
-        tapToPlayText = context.getString(com.jules.loader.R.string.game_tap_to_play)
     }
 
     // ── Lifecycle ───────────────────────────────────────────────────────
