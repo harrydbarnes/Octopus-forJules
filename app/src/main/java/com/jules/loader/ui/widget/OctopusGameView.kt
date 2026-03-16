@@ -379,7 +379,7 @@ class OctopusGameView @JvmOverloads constructor(
         if (initialView) {
             overlayPaint.color = Color.argb(80, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("Tap to Play", w / 2f, h / 2f, gameOverPaint)
+            canvas.drawText(context.getString(com.jules.loader.R.string.game_tap_to_play), w / 2f, h / 2f, gameOverPaint)
         } else {
             // Timer top-left (seconds only)
             val timerText = formatTime(elapsedTime)

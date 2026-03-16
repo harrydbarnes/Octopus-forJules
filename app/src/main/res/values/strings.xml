@@ -71,6 +71,7 @@
 
     <string name="error_signal_message">No Internet Connectivity</string>
     <string name="game_tap_to_restart">Tap here to restart</string>
+    <string name="game_tap_to_play">Tap to Play</string>
 
     <!-- Main Activity -->
     <string name="sessions_title">jules sessions</string>
