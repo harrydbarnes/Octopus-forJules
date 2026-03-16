@@ -767,13 +767,13 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // The entire area below the game: jump while running, restart when game over
+        // The entire area below the game: jump while running, restart when game over, start when initial view
         binding.gameBottomArea.setOnClickListener {
-            if (gameView.isGameOver) gameView.startGame() else gameView.jump()
-        }
-
-        gameView.post {
-            gameView.startGame()
+            if (gameView.isInitialView || gameView.isGameOver) {
+                gameView.startGame()
+            } else {
+                gameView.jump()
+            }
         }
     }
 
