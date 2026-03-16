@@ -220,28 +220,7 @@ class MainActivity : BaseActivity() {
         setupSearch()
         setupFilters()
 
-        if (savedInstanceState != null) {
-            val stopTime = savedInstanceState.getLong(KEY_STOP_TIME, 0)
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - stopTime < REFRESH_TIMEOUT_MS) {
-                val restoredSessions = savedInstanceState.getParcelableArrayList<Session>(KEY_SESSIONS)
-                if (restoredSessions != null) {
-                    allSessions = restoredSessions
-                    nextPageToken = savedInstanceState.getString(KEY_NEXT_PAGE_TOKEN)
-                    
-                    binding.sessionsRecyclerView.visibility = View.VISIBLE
-                    binding.skeletonLayout.visibility = View.GONE
-                    binding.errorContainer.visibility = View.GONE
-                    applyFilters()
-                } else {
-                    loadSessions()
-                }
-            } else {
-                loadSessions()
-            }
-        } else {
-            loadSessions()
-        }
+        loadSessions()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -297,9 +276,8 @@ class MainActivity : BaseActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putParcelableArrayList(KEY_SESSIONS, ArrayList(allSessions))
-        outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
-        outState.putLong(KEY_STOP_TIME, System.currentTimeMillis())
+        // Sessions and logs can be too large for Binder IPC, causing TransactionTooLargeException.
+        // We omit saving them here and just reload them in onCreate.
     }
 
     private fun setupSearch() {
