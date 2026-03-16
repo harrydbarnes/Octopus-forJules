@@ -95,6 +95,7 @@ class OctopusGameView @JvmOverloads constructor(
     private val overlayTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val tapToPlayText: String = context.getString(com.jules.loader.R.string.game_tap_to_play)
+    private val gameOverText: String = context.getString(com.jules.loader.R.string.game_over)
 
     // ── Choreographer ───────────────────────────────────────────────────
 
@@ -396,7 +397,7 @@ class OctopusGameView @JvmOverloads constructor(
         if (gameOver) {
             overlayPaint.color = Color.argb(120, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("GAME OVER", w / 2f, h / 2f, overlayTextPaint)
+            canvas.drawText(gameOverText, w / 2f, h / 2f, overlayTextPaint)
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })
