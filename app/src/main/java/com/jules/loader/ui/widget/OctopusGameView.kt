@@ -92,7 +92,7 @@ class OctopusGameView @JvmOverloads constructor(
     private val scorePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val seaweedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val gameOverPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val overlayTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val tapToPlayText: String = context.getString(com.jules.loader.R.string.game_tap_to_play)
 
@@ -154,11 +154,11 @@ class OctopusGameView @JvmOverloads constructor(
         floorPaint.color = Color.argb(180, 194, 178, 128) // sandy
         floorPaint.style = Paint.Style.FILL
 
-        gameOverPaint.color = Color.WHITE
-        gameOverPaint.textSize = 24f * dp
-        gameOverPaint.textAlign = Paint.Align.CENTER
-        gameOverPaint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-        gameOverPaint.letterSpacing = 0.15f
+        overlayTextPaint.color = Color.WHITE
+        overlayTextPaint.textSize = 24f * dp
+        overlayTextPaint.textAlign = Paint.Align.CENTER
+        overlayTextPaint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        overlayTextPaint.letterSpacing = 0.15f
 
         overlayPaint.style = Paint.Style.FILL
     }
@@ -380,7 +380,7 @@ class OctopusGameView @JvmOverloads constructor(
         if (initialView) {
             overlayPaint.color = Color.argb(80, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText(tapToPlayText, w / 2f, h / 2f, gameOverPaint)
+            canvas.drawText(tapToPlayText, w / 2f, h / 2f, overlayTextPaint)
         } else {
             // Timer top-left (seconds only)
             val timerText = formatTime(elapsedTime)
@@ -396,7 +396,7 @@ class OctopusGameView @JvmOverloads constructor(
         if (gameOver) {
             overlayPaint.color = Color.argb(120, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
-            canvas.drawText("GAME OVER", w / 2f, h / 2f, gameOverPaint)
+            canvas.drawText("GAME OVER", w / 2f, h / 2f, overlayTextPaint)
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })
