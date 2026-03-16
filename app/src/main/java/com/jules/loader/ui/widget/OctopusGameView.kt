@@ -41,9 +41,12 @@ class OctopusGameView @JvmOverloads constructor(
 
     private var gameRunning = false
     private var gameOver = false
+    private var initialView = true
 
     /** True when the current game has ended and is waiting for a restart. */
     val isGameOver: Boolean get() = gameOver
+
+    val isInitialView: Boolean get() = initialView
 
     // ── Timer ────────────────────────────────────────────────────────────
 
@@ -90,6 +93,7 @@ class OctopusGameView @JvmOverloads constructor(
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val seaweedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val gameOverPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     // ── Choreographer ───────────────────────────────────────────────────
 
@@ -150,10 +154,12 @@ class OctopusGameView @JvmOverloads constructor(
         floorPaint.style = Paint.Style.FILL
 
         gameOverPaint.color = Color.WHITE
-        gameOverPaint.textSize = 22f * dp
+        gameOverPaint.textSize = 24f * dp
         gameOverPaint.textAlign = Paint.Align.CENTER
         gameOverPaint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
         gameOverPaint.letterSpacing = 0.15f
+
+        overlayPaint.style = Paint.Style.FILL
     }
 
     // ── Lifecycle ───────────────────────────────────────────────────────
@@ -166,6 +172,7 @@ class OctopusGameView @JvmOverloads constructor(
         }
         gameRunning = true
         gameOver = false
+        initialView = false
         elapsedTime = 0f
         obstacles.clear()
         bubbles.clear()
@@ -220,7 +227,7 @@ class OctopusGameView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (gameOver) {
+            if (initialView || gameOver) {
                 startGame()
             } else {
                 jump()
@@ -231,8 +238,8 @@ class OctopusGameView @JvmOverloads constructor(
     }
 
     fun jump() {
-        // Only jump when the game is actually running (not game-over)
-        if (!isJumping && gameRunning && !gameOver) {
+        // Only jump when the game is actually running (not game-over or initial view)
+        if (!isJumping && gameRunning && !gameOver && !initialView) {
             isJumping = true
             octopusVelocityY = jumpVelocity
         }
@@ -241,6 +248,8 @@ class OctopusGameView @JvmOverloads constructor(
     // ── Update ──────────────────────────────────────────────────────────
 
     private fun updateGame(dt: Float) {
+        if (initialView) return
+
         elapsedTime += dt
         val elapsedSec = elapsedTime.toInt()
         if (elapsedSec > highScore) highScore = elapsedSec
@@ -366,21 +375,25 @@ class OctopusGameView @JvmOverloads constructor(
         // Octopus
         drawOctopus(canvas)
 
-        // Timer top-left (seconds only)
-        val timerText = formatTime(elapsedTime)
-        canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
+        // Initial view overlay
+        if (initialView) {
+            overlayPaint.color = Color.argb(80, 0, 0, 0)
+            canvas.drawRect(0f, 0f, w, h, overlayPaint)
+            canvas.drawText("Tap to Play", w / 2f, h / 2f, gameOverPaint)
+        } else {
+            // Timer top-left (seconds only)
+            val timerText = formatTime(elapsedTime)
+            canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
 
-        // Best time top-right (seconds only)
-        val bestText = "Best: ${formatTime(highScore.toFloat())}"
-        val bestWidth = scorePaint.measureText(bestText)
-        canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
+            // Best time top-right (seconds only)
+            val bestText = "Best: ${formatTime(highScore.toFloat())}"
+            val bestWidth = scorePaint.measureText(bestText)
+            canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
+        }
 
         // Game over overlay
         if (gameOver) {
-            val overlayPaint = Paint().apply {
-                color = Color.argb(120, 0, 0, 0)
-                style = Paint.Style.FILL
-            }
+            overlayPaint.color = Color.argb(120, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
             canvas.drawText("GAME OVER", w / 2f, h / 2f, gameOverPaint)
             canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {

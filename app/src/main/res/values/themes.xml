@@ -16,6 +16,9 @@
         <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:textColorPrimary">?attr/colorOnSurface</item>
         <item name="android:textColorSecondary">?attr/colorOnSurfaceVariant</item>
+
+        <!-- Enable Transitions for Android 15/16 ActivityOptions compatibility -->
+        <item name="android:windowActivityTransitions">true</item>
     </style>
 
     <!-- Base application theme. -->

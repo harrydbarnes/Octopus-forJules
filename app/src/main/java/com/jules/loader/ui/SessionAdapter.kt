@@ -169,7 +169,12 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
                     putExtra(TaskDetailActivity.EXTRA_SESSION_BRANCH, session.sourceContext?.githubRepoContext?.startingBranch)
                 }
 
-                val activity = context as? Activity
+                var currentContext = context
+                while (currentContext is android.content.ContextWrapper && currentContext !is Activity) {
+                    currentContext = currentContext.baseContext
+                }
+
+                val activity = currentContext as? Activity
                 if (activity != null) {
                     val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                         activity,
@@ -178,6 +183,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
                     )
                     context.startActivity(intent, options.toBundle())
                 } else {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 }
             }

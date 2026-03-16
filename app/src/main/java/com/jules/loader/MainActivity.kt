@@ -220,28 +220,7 @@ class MainActivity : BaseActivity() {
         setupSearch()
         setupFilters()
 
-        if (savedInstanceState != null) {
-            val stopTime = savedInstanceState.getLong(KEY_STOP_TIME, 0)
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - stopTime < REFRESH_TIMEOUT_MS) {
-                val restoredSessions = savedInstanceState.getParcelableArrayList<Session>(KEY_SESSIONS)
-                if (restoredSessions != null) {
-                    allSessions = restoredSessions
-                    nextPageToken = savedInstanceState.getString(KEY_NEXT_PAGE_TOKEN)
-                    
-                    binding.sessionsRecyclerView.visibility = View.VISIBLE
-                    binding.skeletonLayout.visibility = View.GONE
-                    binding.errorContainer.visibility = View.GONE
-                    applyFilters()
-                } else {
-                    loadSessions()
-                }
-            } else {
-                loadSessions()
-            }
-        } else {
-            loadSessions()
-        }
+        loadSessions()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -297,9 +276,14 @@ class MainActivity : BaseActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putParcelableArrayList(KEY_SESSIONS, ArrayList(allSessions))
-        outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
-        outState.putLong(KEY_STOP_TIME, System.currentTimeMillis())
+        // Sessions and logs can be too large for Binder IPC, causing TransactionTooLargeException.
+        // Instead of saving large payloads, we only persist light-weight UI state here.
+        outState.putString(KEY_SESSIONS, searchQuery)
+        selectedRepo?.let { repo ->
+            outState.putString(KEY_NEXT_PAGE_TOKEN, repo)
+        }
+        val isSearchVisible = binding.searchContainer.visibility == View.VISIBLE
+        outState.putBoolean(KEY_STOP_TIME, isSearchVisible)
     }
 
     private fun setupSearch() {
@@ -767,13 +751,13 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // The entire area below the game: jump while running, restart when game over
+        // The entire area below the game: jump while running, restart when game over, start when initial view
         binding.gameBottomArea.setOnClickListener {
-            if (gameView.isGameOver) gameView.startGame() else gameView.jump()
-        }
-
-        gameView.post {
-            gameView.startGame()
+            if (gameView.isInitialView || gameView.isGameOver) {
+                gameView.startGame()
+            } else {
+                gameView.jump()
+            }
         }
     }
 
