@@ -10,7 +10,7 @@
         android:translateX="24"
         android:translateY="24">
         <path
-            android:fillColor="@color/black"
+            android:fillColor="@android:color/white"
             android:pathData="@string/octopus_icon_path"/>
     </group>
 </vector>
