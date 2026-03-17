@@ -88,14 +88,31 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Show a skeleton immediately so the user doesn't just see a blank screen
+        binding.skeletonLayout.visibility = View.VISIBLE
+        startSkeletonShimmer()
+        binding.sessionsRecyclerView.visibility = View.GONE
+        binding.fab.hide()
+
+        // IMPORTANT: repository.getInstance() shouldn't block much if properties are lazy
         repository = JulesRepository.getInstance(applicationContext)
 
-        if (repository.getApiKey().isNullOrEmpty()) {
-            startActivity(Intent(this, OnboardingActivity::class.java))
-            finish()
-            return
-        }
+        lifecycleScope.launch {
+            val hasApiKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                !repository.getApiKey().isNullOrEmpty()
+            }
 
+            if (!hasApiKey) {
+                startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                finish()
+                return@launch
+            }
+
+            setupMainActivity()
+        }
+    }
+
+    private fun setupMainActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)
 
@@ -219,6 +236,8 @@ class MainActivity : BaseActivity() {
 
         setupSearch()
         setupFilters()
+
+        binding.fab.show()
 
         loadSessions()
     }

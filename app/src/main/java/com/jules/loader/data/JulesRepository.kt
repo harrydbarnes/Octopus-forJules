@@ -29,16 +29,21 @@ import java.io.File
 
 class JulesRepository private constructor(private val context: Context) {
 
-    private val prefs: SharedPreferences by lazy {
-        try {
-            createEncryptedSharedPreferences()
-        } catch (e: Exception) {
-            // Handle corrupted or incompatible file (e.g., plain text file exists)
-            // Delete the old file and recreate
-            deleteSharedPreferences()
-            createEncryptedSharedPreferences()
+    private var _prefs: SharedPreferences? = null
+    private val prefs: SharedPreferences
+        get() {
+            if (_prefs == null) {
+                _prefs = try {
+                    createEncryptedSharedPreferences()
+                } catch (e: Exception) {
+                    // Handle corrupted or incompatible file (e.g., plain text file exists)
+                    // Delete the old file and recreate
+                    deleteSharedPreferences()
+                    createEncryptedSharedPreferences()
+                }
+            }
+            return _prefs!!
         }
-    }
 
     private fun createEncryptedSharedPreferences(): SharedPreferences {
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
@@ -66,17 +71,23 @@ class JulesRepository private constructor(private val context: Context) {
         }
     }
 
-    private val client = OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply { level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE })
-        .build()
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply { level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE })
+            .build()
+    }
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://jules.googleapis.com/")
-        .client(client)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private val retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://jules.googleapis.com/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
-    private val service = retrofit.create(JulesService::class.java)
+    private val service by lazy {
+        retrofit.create(JulesService::class.java)
+    }
 
     private var cachedSessions: List<Session>? = null
     private var cachedSources: ListSourcesResponse? = null
