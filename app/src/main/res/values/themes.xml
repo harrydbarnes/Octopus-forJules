@@ -1,6 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme with common attributes -->
     <style name="Theme.Jules.Base" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="android:windowSplashScreenBackground">@color/octopus_midnight</item>
         <!-- Shapes -->
         <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Jules.SmallComponent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Jules.MediumComponent</item>
