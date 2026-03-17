@@ -27,4 +27,15 @@
         <item name="cornerFamilyTopRight">rounded</item>
         <item name="cornerSizeTopRight">0dp</item>
     </style>
+
+    <style name="Widget.Jules.Screen.RootScrollView" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_gravity">center_horizontal</item>
+        <item name="android:maxWidth">600dp</item>
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:fillViewport">true</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:padding">24dp</item>
+    </style>
 </resources>

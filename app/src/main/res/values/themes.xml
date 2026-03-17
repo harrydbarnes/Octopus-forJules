@@ -1,8 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme with common attributes -->
-    <style name="Theme.Jules.Base" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
-        <item name="android:windowSplashScreenBackground">@color/octopus_midnight</item>
+    <style name="Base.Theme.Jules" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Shapes -->
         <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Jules.SmallComponent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Jules.MediumComponent</item>
@@ -22,6 +20,9 @@
         <!-- Enable Transitions for Android 15/16 ActivityOptions compatibility -->
         <item name="android:windowActivityTransitions">true</item>
     </style>
+
+    <!-- API level independent Base Theme -->
+    <style name="Theme.Jules.Base" parent="Base.Theme.Jules" />
 
     <!-- Base application theme. -->
     <style name="Theme.Octopus" parent="Theme.Jules.Base">
