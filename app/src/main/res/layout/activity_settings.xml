@@ -1,22 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:fitsSystemWindows="true"
-    android:fitsSystemWindows="true"
-    android:fitsSystemWindows="true"
-    android:fitsSystemWindows="true"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:layout_gravity="center_horizontal"
     android:maxWidth="600dp"
-    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:fillViewport="true"
     android:clipToPadding="false"
     android:padding="24dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
@@ -29,8 +24,6 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
             android:layout_height="wrap_content"
             style="@style/Widget.Material3.CardView.Elevated"
             app:cardBackgroundColor="?attr/colorSurface"
@@ -38,11 +31,9 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -54,8 +45,6 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_shorten_repo_names"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:text="@string/setting_shorten_repo_names"
                     android:textColor="?attr/colorOnSurface"
@@ -64,8 +53,6 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_voice_typing"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:text="@string/setting_voice_typing"
                     android:textColor="?attr/colorOnSurface"
@@ -74,8 +61,6 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_prompt_gallery"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:text="@string/setting_prompt_gallery"
                     android:textColor="?attr/colorOnSurface"
@@ -84,8 +69,6 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_shorten_dates"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:text="@string/setting_shorten_dates"
                     android:textColor="?attr/colorOnSurface"
@@ -94,8 +77,6 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_date_format_mmdd"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:text="@string/setting_date_format_mmdd"
                     android:textColor="?attr/colorOnSurface"
@@ -107,8 +88,6 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
             android:layout_height="wrap_content"
             style="@style/Widget.Material3.CardView.Elevated"
             app:cardBackgroundColor="?attr/colorSurface"
@@ -116,11 +95,9 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -132,8 +109,6 @@
                 <RadioGroup
                     android:id="@+id/radio_group_theme"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
@@ -161,8 +136,6 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_api_key"
             android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
             android:layout_height="wrap_content"
             style="@style/Widget.Material3.CardView.Elevated"
             app:cardBackgroundColor="?attr/colorSurface"
@@ -170,11 +143,9 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -185,8 +156,6 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
@@ -226,8 +195,6 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
             android:layout_height="wrap_content"
             style="@style/Widget.Material3.CardView.Elevated"
             app:cardBackgroundColor="?attr/colorSurface"
@@ -235,11 +202,9 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -251,8 +216,6 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_raw_logs"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:text="@string/setting_raw_logs"
                     android:textColor="?attr/colorOnSurface"
@@ -262,8 +225,6 @@
                     android:id="@+id/btn_test_octopus_game"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
-    android:layout_gravity="center_horizontal"
-    android:maxWidth="600dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:text="@string/debug_test_octopus_game" />
