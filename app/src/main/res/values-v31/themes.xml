@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash screen background matches the app icon background (white) so the
+         icon looks identical to the launcher icon on Android 12+ devices. -->
+    <style name="Theme.Octopus" parent="Theme.Jules.Base">
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+    </style>
+
+    <style name="Theme.Squid" parent="Theme.Jules.Base">
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+    </style>
+</resources>
