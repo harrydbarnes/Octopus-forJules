@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Splash screen background matches the app icon background (white) so the
-         icon looks identical to the launcher icon on Android 12+ devices. -->
+    <!-- Splash screen background is black so the adaptive icon (white circle +
+         purple octopus) appears centred on a dark screen, matching the app icon. -->
     <style name="Theme.Octopus" parent="Theme.Jules.Base">
-        <item name="android:windowSplashScreenBackground">@color/white</item>
+        <item name="android:windowSplashScreenBackground">@color/pitch_black</item>
     </style>
 
     <style name="Theme.Squid" parent="Theme.Jules.Base">
-        <item name="android:windowSplashScreenBackground">@color/white</item>
+        <item name="android:windowSplashScreenBackground">@color/pitch_black</item>
     </style>
 </resources>
