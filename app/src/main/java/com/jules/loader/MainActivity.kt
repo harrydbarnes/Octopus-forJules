@@ -37,6 +37,7 @@ import com.jules.loader.ui.OnboardingActivity
 import com.jules.loader.ui.SessionAdapter
 import com.jules.loader.util.DateUtils
 import com.jules.loader.util.PreferenceUtils
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,9 +85,8 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         repository = JulesRepository.getInstance(applicationContext)
 
@@ -95,6 +95,9 @@ class MainActivity : BaseActivity() {
             finish()
             return
         }
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)

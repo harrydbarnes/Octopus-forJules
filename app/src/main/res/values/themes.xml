@@ -88,6 +88,15 @@
     <!-- Alias for backward compatibility if needed, though we update Manifest -->
     <style name="Theme.JulesLoader" parent="Theme.Octopus" />
 
+    <!-- Splash screen starting theme — used as the launch theme for MainActivity.
+         On API 24-30 the core-splashscreen compat library renders this.
+         On API 31+ the system uses android:windowSplashScreen* attributes from values-v31. -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/octopus_midnight</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="postSplashScreenTheme">@style/Theme.Octopus</item>
+    </style>
+
     <style name="Theme.Squid" parent="Theme.Jules.Base">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/ivory</item>
