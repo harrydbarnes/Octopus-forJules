@@ -35,6 +35,7 @@ import com.jules.loader.databinding.ActivityMainBinding
 import com.jules.loader.ui.BaseActivity
 import com.jules.loader.ui.OnboardingActivity
 import com.jules.loader.ui.SessionAdapter
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.jules.loader.util.DateUtils
 import com.jules.loader.util.PreferenceUtils
 import kotlinx.coroutines.Job
@@ -84,22 +85,14 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         var isReady = false
-        binding.root.viewTreeObserver.addOnPreDrawListener(
-            object : android.view.ViewTreeObserver.OnPreDrawListener {
-                override fun onPreDraw(): Boolean {
-                    if (isReady) {
-                        binding.root.viewTreeObserver.removeOnPreDrawListener(this)
-                        return true
-                    }
-                    return false
-                }
-            }
-        )
+        splashScreen.setKeepOnScreenCondition { !isReady }
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         // IMPORTANT: repository.getInstance() shouldn't block much if properties are lazy
         repository = JulesRepository.getInstance(applicationContext)
