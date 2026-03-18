@@ -4,4 +4,11 @@
         <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
         <item name="android:windowSplashScreenBackground">@color/octopus_midnight</item>
     </style>
+
+    <!-- API 31+ requires android:-prefixed attributes for the OS splash screen.
+         The compat attributes in values/themes.xml are not read by the OS on API 31+. -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="android:windowSplashScreenBackground">@color/octopus_midnight</item>
+    </style>
 </resources>

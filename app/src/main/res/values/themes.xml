@@ -95,6 +95,8 @@
         <item name="windowSplashScreenBackground">@color/octopus_midnight</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
         <item name="postSplashScreenTheme">@style/Theme.Octopus</item>
+        <!-- Match the splash background so the window is never visibly blank -->
+        <item name="android:windowBackground">@color/octopus_midnight</item>
     </style>
 
     <style name="Theme.Squid" parent="Theme.Jules.Base">
