@@ -88,11 +88,18 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Show a skeleton immediately so the user doesn't just see a blank screen
-        binding.skeletonLayout.visibility = View.VISIBLE
-        startSkeletonShimmer()
-        binding.sessionsRecyclerView.visibility = View.GONE
-        binding.fab.hide()
+        var isReady = false
+        binding.root.viewTreeObserver.addOnPreDrawListener(
+            object : android.view.ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    if (isReady) {
+                        binding.root.viewTreeObserver.removeOnPreDrawListener(this)
+                        return true
+                    }
+                    return false
+                }
+            }
+        )
 
         // IMPORTANT: repository.getInstance() shouldn't block much if properties are lazy
         repository = JulesRepository.getInstance(applicationContext)
@@ -105,10 +112,10 @@ class MainActivity : BaseActivity() {
             if (!hasApiKey) {
                 startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
                 finish()
-                return@launch
+            } else {
+                setupMainActivity()
+                isReady = true
             }
-
-            setupMainActivity()
         }
     }
 
@@ -236,8 +243,6 @@ class MainActivity : BaseActivity() {
 
         setupSearch()
         setupFilters()
-
-        binding.fab.show()
 
         loadSessions()
     }

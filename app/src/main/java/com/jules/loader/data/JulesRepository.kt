@@ -29,21 +29,16 @@ import java.io.File
 
 class JulesRepository private constructor(private val context: Context) {
 
-    private var _prefs: SharedPreferences? = null
-    private val prefs: SharedPreferences
-        get() {
-            if (_prefs == null) {
-                _prefs = try {
-                    createEncryptedSharedPreferences()
-                } catch (e: Exception) {
-                    // Handle corrupted or incompatible file (e.g., plain text file exists)
-                    // Delete the old file and recreate
-                    deleteSharedPreferences()
-                    createEncryptedSharedPreferences()
-                }
-            }
-            return _prefs!!
+    private val prefs: SharedPreferences by lazy {
+        try {
+            createEncryptedSharedPreferences()
+        } catch (e: Exception) {
+            // Handle corrupted or incompatible file (e.g., plain text file exists)
+            // Delete the old file and recreate
+            deleteSharedPreferences()
+            createEncryptedSharedPreferences()
         }
+    }
 
     private fun createEncryptedSharedPreferences(): SharedPreferences {
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
