@@ -288,6 +288,8 @@ class OctopusGameView @JvmOverloads constructor(
 
         // Move obstacles
         val iter = obstacles.iterator()
+        val octRect = RectF()
+        val obsRect = RectF()
         while (iter.hasNext()) {
             val obs = iter.next()
             obs.x -= speed * dt
@@ -296,13 +298,17 @@ class OctopusGameView @JvmOverloads constructor(
                 continue
             }
             // Collision detection
-            val octRect = RectF(
-                octopusX + 4f * dp, octopusY + 4f * dp,
-                octopusX + octopusSize - 4f * dp, octopusY + octopusSize - 4f * dp
+            octRect.set(
+                octopusX + 4f * dp,
+                octopusY + 4f * dp,
+                octopusX + octopusSize - 4f * dp,
+                octopusY + octopusSize - 4f * dp
             )
-            val obsRect = RectF(
-                obs.x, floorY - obs.height,
-                obs.x + obs.width, floorY
+            obsRect.set(
+                obs.x,
+                floorY - obs.height,
+                obs.x + obs.width,
+                floorY
             )
             if (RectF.intersects(octRect, obsRect)) {
                 gameOver = true
