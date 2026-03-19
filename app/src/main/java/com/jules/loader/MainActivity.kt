@@ -287,10 +287,19 @@ class MainActivity : BaseActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Could not unregister network callback", e)
         }
+
+        // Ensure any blur RenderEffect applied to the sessions list is cleared
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(null)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        // Defensive: also clear any remaining blur when the Activity is destroyed
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(null)
+        }
         retryJob?.cancel()
     }
 
