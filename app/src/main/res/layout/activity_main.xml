@@ -212,6 +212,8 @@
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:paddingTop="34dp"
+                android:clickable="true"
+                android:focusable="true"
                 android:visibility="gone">
 
                 <!-- Friendly signal-loss message (hidden for "no sessions" case) -->
