@@ -444,10 +444,11 @@ class CreateTaskActivity : BaseActivity() {
             isListening = false
         }
 
+        var pendingSettleRunnable: Runnable? = null
+
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             // RecognitionListener callbacks are dispatched on the main thread by Android's
             // SpeechRecognizer, so pendingSettleRunnable access is safe without synchronization.
-            var pendingSettleRunnable: Runnable? = null
 
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {
@@ -480,6 +481,7 @@ class CreateTaskActivity : BaseActivity() {
                 isListening = false
                 tvStatus.removeCallbacks(ellipsisRunnable)
                 pendingSettleRunnable?.let { wavyIndicator.removeCallbacks(it) }
+                pendingSettleRunnable = null
                 tvStatus.text = "Error"
                 dialog.dismiss()
             }
@@ -507,6 +509,12 @@ class CreateTaskActivity : BaseActivity() {
             }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
+
+        dialog.setOnDismissListener {
+            pendingSettleRunnable?.let { wavyIndicator.removeCallbacks(it) }
+            pendingSettleRunnable = null
+            tvStatus.removeCallbacks(ellipsisRunnable)
+        }
 
         speechRecognizer.startListening(speechRecognizerIntent)
         dialog.show()
