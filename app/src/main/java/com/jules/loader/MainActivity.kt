@@ -98,15 +98,18 @@ class MainActivity : BaseActivity() {
         repository = JulesRepository.getInstance(applicationContext)
 
         lifecycleScope.launch {
-            val hasApiKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                !repository.getApiKey().isNullOrEmpty()
-            }
+            try {
+                val hasApiKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    !repository.getApiKey().isNullOrEmpty()
+                }
 
-            if (!hasApiKey) {
-                startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
-                finish()
-            } else {
-                setupMainActivity()
+                if (!hasApiKey) {
+                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                    finish()
+                } else {
+                    setupMainActivity()
+                }
+            } finally {
                 isReady = true
             }
         }
