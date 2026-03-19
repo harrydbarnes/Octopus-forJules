@@ -35,6 +35,7 @@ import com.jules.loader.databinding.ActivityMainBinding
 import com.jules.loader.ui.BaseActivity
 import com.jules.loader.ui.OnboardingActivity
 import com.jules.loader.ui.SessionAdapter
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.jules.loader.util.DateUtils
 import com.jules.loader.util.PreferenceUtils
 import kotlinx.coroutines.Job
@@ -84,18 +85,37 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        var isReady = false
+        splashScreen.setKeepOnScreenCondition { !isReady }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // IMPORTANT: repository.getInstance() shouldn't block much if properties are lazy
         repository = JulesRepository.getInstance(applicationContext)
 
-        if (repository.getApiKey().isNullOrEmpty()) {
-            startActivity(Intent(this, OnboardingActivity::class.java))
-            finish()
-            return
-        }
+        lifecycleScope.launch {
+            try {
+                val hasApiKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    !repository.getApiKey().isNullOrEmpty()
+                }
 
+                if (!hasApiKey) {
+                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                    finish()
+                } else {
+                    setupMainActivity()
+                }
+            } finally {
+                isReady = true
+            }
+        }
+    }
+
+    private fun setupMainActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)
 
