@@ -203,6 +203,8 @@ class OctopusGameView @JvmOverloads constructor(
 
     fun stopGame() {
         gameRunning = false
+        initialView = true
+        gameOver = false
         if (choreographerRunning) {
             choreographerRunning = false
             Choreographer.getInstance().removeFrameCallback(frameCallback)
