@@ -303,18 +303,6 @@ class MainActivity : BaseActivity() {
         retryJob?.cancel()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        // Sessions and logs can be too large for Binder IPC, causing TransactionTooLargeException.
-        // Instead of saving large payloads, we only persist light-weight UI state here.
-        outState.putString(KEY_SESSIONS, searchQuery)
-        selectedRepo?.let { repo ->
-            outState.putString(KEY_NEXT_PAGE_TOKEN, repo)
-        }
-        val isSearchVisible = binding.searchContainer.visibility == View.VISIBLE
-        outState.putBoolean(KEY_STOP_TIME, isSearchVisible)
-    }
-
     private fun setupSearch() {
         binding.btnSearch.contentDescription = getString(R.string.action_search)
         binding.btnSearch.setOnClickListener {
