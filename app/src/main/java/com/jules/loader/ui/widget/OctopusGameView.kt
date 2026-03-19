@@ -17,6 +17,14 @@ import android.view.View
 import kotlin.math.sin
 import kotlin.random.Random
 
+// Reusable drawing objects to avoid per-frame allocations in onDraw
+private val CLIP_PATH = Path()
+private val CLIP_RECT = RectF()
+private val SAND_PAINT: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    color = Color.argb(60, 139, 119, 80)
+    style = Paint.Style.FILL
+}
+
 /**
  * An underwater Chrome-Dino-style side-scroller starring an octopus.
  *
@@ -342,10 +350,16 @@ class OctopusGameView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
 
-        // Clip to rounded corners
-        val clipPath = Path()
-        clipPath.addRoundRect(RectF(0f, 0f, w, h), CORNER_RADIUS_DP * dp, CORNER_RADIUS_DP * dp, Path.Direction.CW)
-        canvas.clipPath(clipPath)
+        // Clip to rounded corners using reusable Path and RectF
+        CLIP_RECT.set(0f, 0f, w, h)
+        CLIP_PATH.reset()
+        CLIP_PATH.addRoundRect(
+            CLIP_RECT,
+            CORNER_RADIUS_DP * dp,
+            CORNER_RADIUS_DP * dp,
+            Path.Direction.CW
+        )
+        canvas.clipPath(CLIP_PATH)
 
         // Ocean background
         canvas.drawRect(0f, 0f, w, h, oceanPaint)
@@ -358,15 +372,11 @@ class OctopusGameView @JvmOverloads constructor(
 
         // Sandy floor
         canvas.drawRect(0f, floorY, w, h, floorPaint)
-        // Floor sand dots
-        val sandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(60, 139, 119, 80)
-            style = Paint.Style.FILL
-        }
+        // Floor sand dots (reuse SAND_PAINT to avoid per-frame allocations)
         var dotX = (-(scrollOffset * 0.5f) % (30f * dp) + 30f * dp) % (30f * dp)
         while (dotX < w) {
-            canvas.drawCircle(dotX, floorY + 8f * dp, 2f * dp, sandPaint)
-            canvas.drawCircle(dotX + 15f * dp, floorY + 16f * dp, 1.5f * dp, sandPaint)
+            canvas.drawCircle(dotX, floorY + 8f * dp, 2f * dp, SAND_PAINT)
+            canvas.drawCircle(dotX + 15f * dp, floorY + 16f * dp, 1.5f * dp, SAND_PAINT)
             dotX += 30f * dp
         }
 
