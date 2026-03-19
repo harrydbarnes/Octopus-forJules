@@ -33,6 +33,7 @@ import com.jules.loader.databinding.ActivityCreateTaskBinding
 import com.jules.loader.util.PreferenceUtils
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.activity.OnBackPressedCallback
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.JustifyContent
@@ -55,6 +56,15 @@ class CreateTaskActivity : BaseActivity() {
     private var isListening = false
     private var originalTextBeforeSpeech = ""
     private var repoAdapter: ArrayAdapter<String>? = null
+
+    private val onBackPressedCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
+                promptAdapter.isEditMode = false
+                savePromptOrder(promptAdapter.getItems())
+            }
+        }
+    }
     private var branchAdapter: ArrayAdapter<String>? = null
     private val sourceMap = mutableMapOf<String, String>()
     private var isTaskInputExpanded = false
@@ -100,10 +110,13 @@ class CreateTaskActivity : BaseActivity() {
         binding.toolbar.setNavigationOnClickListener {
             if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
                 promptAdapter.isEditMode = false
+                savePromptOrder(promptAdapter.getItems())
             } else {
                 onBackPressedDispatcher.onBackPressed()
             }
         }
+
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
         setupRepoSelector()
         setupVoiceInput()
@@ -309,10 +322,6 @@ class CreateTaskActivity : BaseActivity() {
     }
 
     override fun onBackPressed() {
-        if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
-            promptAdapter.isEditMode = false
-            return
-        }
         @Suppress("DEPRECATION")
         super.onBackPressed()
     }
@@ -326,7 +335,7 @@ class CreateTaskActivity : BaseActivity() {
 
         var touchHelper: ItemTouchHelper? = null
 
-        promptAdapter = PromptAdapter(
+        promptAdapter = object : PromptAdapter(
             onItemClick = { item ->
                 if (item.id != "custom_add") {
                     if (item.isCustom || !item.body.endsWith(".md")) {
@@ -348,8 +357,11 @@ class CreateTaskActivity : BaseActivity() {
             onStartDrag = { viewHolder ->
                 touchHelper?.startDrag(viewHolder)
             }
-        )
-
+        ) {
+            override fun onEditModeChanged(editMode: Boolean) {
+                onBackPressedCallback.isEnabled = editMode
+            }
+        }
         val layoutManager = FlexboxLayoutManager(this).apply {
             flexDirection = FlexDirection.ROW
             justifyContent = JustifyContent.CENTER

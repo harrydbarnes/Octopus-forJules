@@ -14,7 +14,7 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import com.jules.loader.R
 import java.util.Collections
 
-class PromptAdapter(
+open class PromptAdapter(
     private val onItemClick: (PromptItem) -> Unit,
     private val onCustomAddClick: () -> Unit,
     private val onItemsReordered: (List<PromptItem>) -> Unit,
@@ -35,8 +35,11 @@ class PromptAdapter(
                 for (holder in activeHolders) {
                     holder.updateEditModeUI()
                 }
+                onEditModeChanged(value)
             }
         }
+
+    protected open fun onEditModeChanged(editMode: Boolean) {}
 
     fun submitList(newItems: List<PromptItem>) {
         items.clear()

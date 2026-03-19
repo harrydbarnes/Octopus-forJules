@@ -8,6 +8,7 @@
     android:background="?attr/colorSurface">
 
     <TextView
+        android:id="@+id/tvDialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Add Custom Prompt"

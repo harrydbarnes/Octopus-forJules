@@ -12,7 +12,7 @@ class PromptDividerItemDecoration(context: Context) : RecyclerView.ItemDecoratio
 
     private val paint = Paint().apply {
         style = Paint.Style.STROKE
-        strokeWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, context.resources.displayMetrics)
+        strokeWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 0.5f, context.resources.displayMetrics)
 
         val typedValue = TypedValue()
         val theme = context.theme
@@ -31,8 +31,8 @@ class PromptDividerItemDecoration(context: Context) : RecyclerView.ItemDecoratio
             val params = child.layoutParams as RecyclerView.LayoutParams
 
             val top = child.bottom + params.bottomMargin.toFloat()
-            val left = parent.width * 0.125f // Start at 12.5% (leaving 75% width centered)
-            val right = parent.width * 0.875f // End at 87.5%
+            val left = parent.width * 0.075f // Start at 7.5% (leaving 85% width centered)
+            val right = parent.width * 0.925f // End at 92.5%
 
             c.drawLine(left, top, right, top, paint)
         }
