@@ -70,6 +70,10 @@ class ManagePromptAdapter(
                 btnEdit.visibility = View.GONE
                 btnDelete.visibility = View.GONE
             }
+
+            itemView.setOnClickListener {
+                onEditClick(item)
+            }
         }
     }
 }

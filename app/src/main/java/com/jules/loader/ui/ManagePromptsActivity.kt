@@ -7,7 +7,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.DividerItemDecoration
+import android.view.View
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -50,7 +50,7 @@ class ManagePromptsActivity : BaseActivity() {
 
         binding.rvManagePrompts.layoutManager = LinearLayoutManager(this)
         binding.rvManagePrompts.adapter = adapter
-        binding.rvManagePrompts.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        binding.rvManagePrompts.addItemDecoration(PromptDividerItemDecoration(this))
 
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN,
@@ -72,6 +72,17 @@ class ManagePromptsActivity : BaseActivity() {
         binding.fabAddPrompt.setOnClickListener {
             showAddDialog()
         }
+
+        binding.rvManagePrompts.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (dy > 0 && binding.fabAddPrompt.isExtended) {
+                    binding.fabAddPrompt.shrink()
+                } else if (dy < 0 && !binding.fabAddPrompt.isExtended) {
+                    binding.fabAddPrompt.extend()
+                }
+            }
+        })
     }
 
     private fun loadData() {
@@ -103,7 +114,14 @@ class ManagePromptsActivity : BaseActivity() {
             disabledPrompts.addAll(gson.fromJson(disabledPromptsJson, type))
         }
 
-        val combined = (defaultPrompts + customPrompts).toMutableList()
+        val mergedPrompts = defaultPrompts.map { defaultItem ->
+            customPrompts.find { it.id == defaultItem.id } ?: defaultItem
+        }.toMutableList()
+
+        // Add true custom prompts
+        mergedPrompts.addAll(customPrompts.filter { it.isCustom && mergedPrompts.none { mp -> mp.id == it.id } })
+
+        val combined = mergedPrompts.toMutableList()
 
         val promptOrderJson = PreferenceUtils.getPromptOrderJson(this)
         if (!promptOrderJson.isNullOrEmpty()) {
@@ -164,11 +182,15 @@ class ManagePromptsActivity : BaseActivity() {
         val dialog = BottomSheetDialog(this)
         dialog.setContentView(dialogView)
 
+        val tvDialogTitle = dialogView.findViewById<android.widget.TextView>(R.id.tvPromptTitle) // Actually the dialog title text view, we need to find it by type if no ID or cast.
+        // Wait, the id for the header text view is not set. Let's find the first text view.
+        val headerText = dialogView.findViewWithTag<android.widget.TextView>("header") // Or just get it dynamically.
         val etTitle = dialogView.findViewById<EditText>(R.id.etPromptTitle)
         val etEmoji = dialogView.findViewById<EditText>(R.id.etPromptEmoji)
         val etBody = dialogView.findViewById<EditText>(R.id.etPromptBody)
         val btnSave = dialogView.findViewById<Button>(R.id.btnSavePrompt)
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancelPrompt)
+        val btnReset = dialogView.findViewById<Button>(R.id.btnResetPrompt)
 
         if (itemToEdit != null) {
             // Very naive split for emoji and title
@@ -179,7 +201,63 @@ class ManagePromptsActivity : BaseActivity() {
             } else {
                 etTitle.setText(itemToEdit.title)
             }
-            etBody.setText(itemToEdit.body)
+
+            if (itemToEdit.isCustom) {
+                etBody.setText(itemToEdit.body)
+            } else {
+                // For default prompts, body might be a filename or customized body.
+                // We'll just show the current body if it doesn't end in .md, or load it from assets if it does.
+                if (itemToEdit.body.endsWith(".md")) {
+                    val defaultBody = try {
+                        assets.open("prompts/${itemToEdit.body}").bufferedReader().use { it.readText() }
+                    } catch (e: Exception) { "" }
+                    etBody.setText(defaultBody)
+                } else {
+                    etBody.setText(itemToEdit.body)
+                }
+
+                btnReset.visibility = View.VISIBLE
+                btnReset.setOnClickListener {
+                    val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+                    val type = object : TypeToken<MutableList<PromptItem>>() {}.type
+                    val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
+                        gson.fromJson(customPromptsJson, type)
+                    } else {
+                        mutableListOf()
+                    }
+
+                    val idx = customPrompts.indexOfFirst { it.id == itemToEdit.id }
+                    if (idx != -1) {
+                        customPrompts.removeAt(idx)
+                        PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
+                    }
+
+                    try {
+                        val originalFileName = when(itemToEdit.id) {
+                            "performance" -> "performance.md"
+                            "design" -> "design.md"
+                            "security" -> "security.md"
+                            "bug_hunt" -> "bug_hunt.md"
+                            "dependencies" -> "update_dependencies.md"
+                            "readme" -> "readme.md"
+                            "simplify" -> "simplify.md"
+                            "refactor" -> "refactor.md"
+                            "unit_tests" -> "unit_tests.md"
+                            "janitor" -> "janitor.md"
+                            "accessibility" -> "accessibility.md"
+                            else -> "${itemToEdit.id}.md"
+                        }
+
+                        val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
+                        if (allIdx != -1) {
+                            allPrompts[allIdx] = allPrompts[allIdx].copy(title = itemToEdit.title, body = originalFileName)
+                            adapter.notifyItemChanged(allIdx)
+                        }
+                    } catch (e: Exception) { }
+
+                    dialog.dismiss()
+                }
+            }
         }
 
         btnCancel.setOnClickListener { dialog.dismiss() }
@@ -207,8 +285,15 @@ class ManagePromptsActivity : BaseActivity() {
             if (itemToEdit != null) {
                 // Update
                 val updatedItem = itemToEdit.copy(title = finalTitle, body = body)
+
+                // If it's a default prompt being edited, it becomes an override saved in customPrompts
+                // with the same ID, so it overrides the default on load.
                 val idx = customPrompts.indexOfFirst { it.id == itemToEdit.id }
-                if (idx != -1) customPrompts[idx] = updatedItem
+                if (idx != -1) {
+                    customPrompts[idx] = updatedItem
+                } else if (!itemToEdit.isCustom) {
+                    customPrompts.add(updatedItem)
+                }
 
                 val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
                 if (allIdx != -1) {

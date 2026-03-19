@@ -1,0 +1,40 @@
+package com.jules.loader.ui
+
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.util.TypedValue
+import android.view.View
+import androidx.recyclerview.widget.RecyclerView
+import com.jules.loader.R
+
+class PromptDividerItemDecoration(context: Context) : RecyclerView.ItemDecoration() {
+
+    private val paint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, context.resources.displayMetrics)
+
+        val typedValue = TypedValue()
+        val theme = context.theme
+        if (theme.resolveAttribute(R.attr.promptDividerColor, typedValue, true)) {
+            color = typedValue.data
+        } else {
+            // Fallback
+            color = 0xFF424242.toInt()
+        }
+    }
+
+    override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        val childCount = parent.childCount
+        for (i in 0 until childCount - 1) { // Don't draw after the last item
+            val child = parent.getChildAt(i)
+            val params = child.layoutParams as RecyclerView.LayoutParams
+
+            val top = child.bottom + params.bottomMargin.toFloat()
+            val left = parent.width * 0.125f // Start at 12.5% (leaving 75% width centered)
+            val right = parent.width * 0.875f // End at 87.5%
+
+            c.drawLine(left, top, right, top, paint)
+        }
+    }
+}

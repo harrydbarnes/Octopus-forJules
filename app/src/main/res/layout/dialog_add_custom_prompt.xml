@@ -66,6 +66,20 @@
         android:gravity="end">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnResetPrompt"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reset"
+            android:visibility="gone"
+            android:layout_weight="0" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCancelPrompt"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"

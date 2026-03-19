@@ -56,6 +56,8 @@
         <item name="android:statusBarColor">@color/octopus_midnight</item>
         <!-- Customize your theme here. -->
         <item name="android:navigationBarColor">@color/octopus_midnight</item>
+
+        <item name="promptDividerColor">#424242</item> <!-- Dark grey -->
     </style>
 
     <style name="ShapeAppearance.Jules.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
@@ -119,6 +121,8 @@
         <item name="android:statusBarColor">@color/pitch_black</item>
         <!-- Customize your theme here. -->
         <item name="android:navigationBarColor">@color/pitch_black</item>
+
+        <item name="promptDividerColor">#1A1A1A</item> <!-- Near black -->
     </style>
 
     <style name="TextAppearance.Squid.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">

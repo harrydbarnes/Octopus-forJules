@@ -98,7 +98,11 @@ class CreateTaskActivity : BaseActivity() {
         viewModel = ViewModelProvider(this, factory)[CreateTaskViewModel::class.java]
 
         binding.toolbar.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+            if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
+                promptAdapter.isEditMode = false
+            } else {
+                onBackPressedDispatcher.onBackPressed()
+            }
         }
 
         setupRepoSelector()
@@ -325,7 +329,7 @@ class CreateTaskActivity : BaseActivity() {
         promptAdapter = PromptAdapter(
             onItemClick = { item ->
                 if (item.id != "custom_add") {
-                    if (item.isCustom) {
+                    if (item.isCustom || !item.body.endsWith(".md")) {
                         binding.taskInput.setText(item.body)
                     } else {
                         readAssetPrompt(item.body)?.let { binding.taskInput.setText(it) }
@@ -421,7 +425,15 @@ class CreateTaskActivity : BaseActivity() {
             emptySet()
         }
 
-        val allPrompts = (defaultPrompts + customPrompts).filter { !disabledPrompts.contains(it.id) }.toMutableList()
+        // Override defaults with edited custom prompts
+        val mergedPrompts = defaultPrompts.map { defaultItem ->
+            customPrompts.find { it.id == defaultItem.id } ?: defaultItem
+        }.toMutableList()
+
+        // Add true custom prompts
+        mergedPrompts.addAll(customPrompts.filter { it.isCustom && mergedPrompts.none { mp -> mp.id == it.id } })
+
+        val allPrompts = mergedPrompts.filter { !disabledPrompts.contains(it.id) }.toMutableList()
 
         // Apply saved order
         val promptOrderJson = PreferenceUtils.getPromptOrderJson(this)
@@ -554,6 +566,8 @@ class CreateTaskActivity : BaseActivity() {
                 binding.rvPromptGallery.getGlobalVisibleRect(outRect)
                 if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
                     promptAdapter.isEditMode = false
+                    // Save prompt order implicitly by saving whatever is currently displayed
+                    savePromptOrder(promptAdapter.getItems())
                 }
             }
         }
