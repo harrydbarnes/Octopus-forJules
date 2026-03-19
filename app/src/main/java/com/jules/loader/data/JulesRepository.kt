@@ -88,6 +88,9 @@ class JulesRepository private constructor(private val context: Context) {
     private var cachedSources: ListSourcesResponse? = null
     private var lastSourcesFetchTime: Long = 0
 
+    private val prefsFile: File
+        get() = File(context.filesDir.parent, "shared_prefs/$PREFS_FILE_NAME.xml")
+
     companion object {
         private const val PREFS_FILE_NAME = "jules_prefs"
         private const val KEY_API_KEY = "jules_api_key"
@@ -108,8 +111,7 @@ class JulesRepository private constructor(private val context: Context) {
     }
 
     fun clearApiKey() {
-        val file = File(context.filesDir.parent, "shared_prefs/$PREFS_FILE_NAME.xml")
-        if (!file.exists()) return
+        if (!prefsFile.exists()) return
         prefs.edit().remove(KEY_API_KEY).apply()
         cachedSessions = null
     }
@@ -117,8 +119,7 @@ class JulesRepository private constructor(private val context: Context) {
     fun getApiKey(): String? {
         // Fast-path: If the prefs file doesn't exist, we know there's no API key.
         // This avoids triggering the 5-second EncryptedSharedPreferences creation on the very first launch.
-        val file = File(context.filesDir.parent, "shared_prefs/$PREFS_FILE_NAME.xml")
-        if (!file.exists()) {
+        if (!prefsFile.exists()) {
             return null
         }
         return prefs.getString(KEY_API_KEY, null)
