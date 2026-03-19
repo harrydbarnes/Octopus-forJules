@@ -59,29 +59,6 @@
                     android:textColor="?attr/colorOnSurface"
                     android:checked="true" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_prompt_gallery"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/setting_prompt_gallery"
-                        android:textColor="?attr/colorOnSurface"
-                        android:checked="true" />
-
-                    <Button
-                        android:id="@+id/btn_manage_prompts"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Manage" />
-                </LinearLayout>
-
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_shorten_dates"
                     android:layout_width="match_parent"
@@ -97,6 +74,22 @@
                     android:text="@string/setting_date_format_mmdd"
                     android:textColor="?attr/colorOnSurface"
                     android:checked="false" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_prompt_gallery"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_prompt_gallery"
+                    android:textColor="?attr/colorOnSurface"
+                    android:checked="true" />
+
+                <Button
+                    android:id="@+id/btn_manage_prompts"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Manage Prompts" />
 
             </LinearLayout>
 

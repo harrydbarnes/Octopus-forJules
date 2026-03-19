@@ -309,6 +309,7 @@ class CreateTaskActivity : BaseActivity() {
             promptAdapter.isEditMode = false
             return
         }
+        @Suppress("DEPRECATION")
         super.onBackPressed()
     }
 
@@ -318,6 +319,8 @@ class CreateTaskActivity : BaseActivity() {
             binding.rvPromptGallery.visibility = View.GONE
             return
         }
+
+        var touchHelper: ItemTouchHelper? = null
 
         promptAdapter = PromptAdapter(
             onItemClick = { item ->
@@ -337,6 +340,9 @@ class CreateTaskActivity : BaseActivity() {
             },
             onItemDisabled = { item ->
                 disablePrompt(item)
+            },
+            onStartDrag = { viewHolder ->
+                touchHelper?.startDrag(viewHolder)
             }
         )
 
@@ -348,7 +354,7 @@ class CreateTaskActivity : BaseActivity() {
         binding.rvPromptGallery.layoutManager = layoutManager
         binding.rvPromptGallery.adapter = promptAdapter
 
-        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+        touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
             0
         ) {
@@ -372,7 +378,7 @@ class CreateTaskActivity : BaseActivity() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
 
             override fun isLongPressDragEnabled(): Boolean {
-                return promptAdapter.isEditMode
+                return false
             }
         })
         touchHelper.attachToRecyclerView(binding.rvPromptGallery)
@@ -540,6 +546,14 @@ class CreateTaskActivity : BaseActivity() {
                     v.clearFocus()
                     val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
                     imm?.hideSoftInputFromWindow(v.windowToken, 0)
+                }
+            }
+
+            if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
+                val outRect = android.graphics.Rect()
+                binding.rvPromptGallery.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
+                    promptAdapter.isEditMode = false
                 }
             }
         }

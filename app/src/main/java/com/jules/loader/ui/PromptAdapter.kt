@@ -10,6 +10,7 @@ import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.flexbox.FlexboxLayoutManager
 import com.jules.loader.R
 import java.util.Collections
 
@@ -17,15 +18,24 @@ class PromptAdapter(
     private val onItemClick: (PromptItem) -> Unit,
     private val onCustomAddClick: () -> Unit,
     private val onItemsReordered: (List<PromptItem>) -> Unit,
-    private val onItemDisabled: (PromptItem) -> Unit
+    private val onItemDisabled: (PromptItem) -> Unit,
+    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
 ) : RecyclerView.Adapter<PromptAdapter.PromptViewHolder>() {
 
     private val items = mutableListOf<PromptItem>()
+
+    // We maintain a list of active view holders to manually animate/update them
+    // without triggering a full notifyDataSetChanged() that would cancel an active drag.
+    private val activeHolders = mutableSetOf<PromptViewHolder>()
+
     var isEditMode = false
-        @SuppressLint("NotifyDataSetChanged")
         set(value) {
-            field = value
-            notifyDataSetChanged()
+            if (field != value) {
+                field = value
+                for (holder in activeHolders) {
+                    holder.updateEditModeUI()
+                }
+            }
         }
 
     fun submitList(newItems: List<PromptItem>) {
@@ -52,11 +62,28 @@ class PromptAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PromptViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_prompt_chip, parent, false)
+        val lp = view.layoutParams
+        if (lp is FlexboxLayoutManager.LayoutParams) {
+            lp.flexGrow = 1f
+            lp.flexBasisPercent = 0.3f
+        }
         return PromptViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: PromptViewHolder, position: Int) {
         holder.bind(items[position])
+    }
+
+    override fun onViewAttachedToWindow(holder: PromptViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        activeHolders.add(holder)
+        holder.updateEditModeUI()
+    }
+
+    override fun onViewDetachedFromWindow(holder: PromptViewHolder) {
+        super.onViewDetachedFromWindow(holder)
+        activeHolders.remove(holder)
+        holder.stopWiggle()
     }
 
     override fun getItemCount(): Int = items.size
@@ -66,7 +93,10 @@ class PromptAdapter(
         private val btnRemove: ImageView = itemView.findViewById(R.id.btnRemove)
         private var animator: ObjectAnimator? = null
 
+        private var boundItemId: String? = null
+
         fun bind(item: PromptItem) {
+            boundItemId = item.id
             btnPrompt.text = item.title
 
             if (item.id == "custom_add") {
@@ -77,8 +107,9 @@ class PromptAdapter(
                 btnPrompt.setOnClickListener {
                     if (!isEditMode) onCustomAddClick()
                 }
-                btnRemove.visibility = View.GONE
-                stopWiggle()
+
+                // Ensure edit mode UI is correct initially
+                updateEditModeUI()
             } else {
                 btnPrompt.setStrokeColorResource(android.R.color.transparent)
                 btnPrompt.strokeWidth = 0
@@ -86,23 +117,35 @@ class PromptAdapter(
                     if (!isEditMode) onItemClick(item)
                 }
 
+                // Make it draggable immediately regardless of current mode
                 btnPrompt.setOnLongClickListener {
                     if (!isEditMode) {
                         isEditMode = true
                     }
+                    onStartDrag(this@PromptViewHolder)
                     true
                 }
 
+                btnRemove.setOnClickListener {
+                    onItemDisabled(item)
+                }
+
+                // Ensure edit mode UI is correct initially
+                updateEditModeUI()
+            }
+        }
+
+        fun updateEditModeUI() {
+            if (boundItemId == "custom_add") {
+                btnRemove.visibility = View.GONE
+                stopWiggle()
+            } else {
                 if (isEditMode) {
                     btnRemove.visibility = View.VISIBLE
                     startWiggle()
                 } else {
                     btnRemove.visibility = View.GONE
                     stopWiggle()
-                }
-
-                btnRemove.setOnClickListener {
-                    onItemDisabled(item)
                 }
             }
         }
@@ -121,7 +164,7 @@ class PromptAdapter(
             }
         }
 
-        private fun stopWiggle() {
+        fun stopWiggle() {
             animator?.cancel()
             itemView.rotation = 0f
         }

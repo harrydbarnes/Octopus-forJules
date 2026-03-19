@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DividerItemDecoration
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -49,6 +50,7 @@ class ManagePromptsActivity : BaseActivity() {
 
         binding.rvManagePrompts.layoutManager = LinearLayoutManager(this)
         binding.rvManagePrompts.adapter = adapter
+        binding.rvManagePrompts.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
 
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN,
