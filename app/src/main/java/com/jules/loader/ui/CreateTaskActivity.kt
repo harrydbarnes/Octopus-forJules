@@ -33,11 +33,23 @@ import com.jules.loader.databinding.ActivityCreateTaskBinding
 import com.jules.loader.util.PreferenceUtils
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.android.flexbox.FlexDirection
+import com.google.android.flexbox.JustifyContent
+import com.google.android.flexbox.FlexWrap
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import android.widget.EditText
+import android.widget.Button
 
 class CreateTaskActivity : BaseActivity() {
 
     private lateinit var binding: ActivityCreateTaskBinding
     private lateinit var viewModel: CreateTaskViewModel
+    private lateinit var promptAdapter: PromptAdapter
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var speechRecognizerIntent: Intent
     private var isListening = false
@@ -292,28 +304,220 @@ class CreateTaskActivity : BaseActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
+            promptAdapter.isEditMode = false
+            return
+        }
+        super.onBackPressed()
+    }
+
     private fun setupPromptGallery() {
         if (!PreferenceUtils.isPromptGalleryEnabled(this)) {
             binding.tvPromptGalleryTitle.visibility = View.GONE
-            binding.promptGalleryContainer.visibility = View.GONE
+            binding.rvPromptGallery.visibility = View.GONE
             return
         }
 
-        mapOf(
-            binding.btnPromptPerformance to "performance.md",
-            binding.btnPromptDesign to "design.md",
-            binding.btnPromptSecurity to "security.md",
-            binding.btnPromptBugHunt to "bug_hunt.md",
-            binding.btnPromptUpdateDependencies to "update_dependencies.md",
-            binding.btnPromptReadme to "readme.md",
-            binding.btnPromptSimplify to "simplify.md",
-            binding.btnPromptRefactor to "refactor.md",
-            binding.btnPromptUnitTests to "unit_tests.md"
-        ).forEach { (button, filename) ->
-            button.setOnClickListener {
-                readAssetPrompt(filename)?.let { binding.taskInput.setText(it) }
+        promptAdapter = PromptAdapter(
+            onItemClick = { item ->
+                if (item.id != "custom_add") {
+                    if (item.isCustom) {
+                        binding.taskInput.setText(item.body)
+                    } else {
+                        readAssetPrompt(item.body)?.let { binding.taskInput.setText(it) }
+                    }
+                }
+            },
+            onCustomAddClick = {
+                showAddCustomPromptDialog()
+            },
+            onItemsReordered = { newItems ->
+                savePromptOrder(newItems)
+            },
+            onItemDisabled = { item ->
+                disablePrompt(item)
             }
+        )
+
+        val layoutManager = FlexboxLayoutManager(this).apply {
+            flexDirection = FlexDirection.ROW
+            justifyContent = JustifyContent.CENTER
+            flexWrap = FlexWrap.WRAP
         }
+        binding.rvPromptGallery.layoutManager = layoutManager
+        binding.rvPromptGallery.adapter = promptAdapter
+
+        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
+            0
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                if (viewHolder.adapterPosition == RecyclerView.NO_POSITION ||
+                    target.adapterPosition == RecyclerView.NO_POSITION
+                ) return false
+
+                if (promptAdapter.getItems()[viewHolder.adapterPosition].id == "custom_add" ||
+                    promptAdapter.getItems()[target.adapterPosition].id == "custom_add"
+                ) return false
+
+                promptAdapter.moveItem(viewHolder.adapterPosition, target.adapterPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun isLongPressDragEnabled(): Boolean {
+                return promptAdapter.isEditMode
+            }
+        })
+        touchHelper.attachToRecyclerView(binding.rvPromptGallery)
+
+        loadPrompts()
+    }
+
+    private fun loadPrompts() {
+        val defaultPrompts = listOf(
+            PromptItem("performance", getString(R.string.prompt_performance_title), false, "performance.md"),
+            PromptItem("design", getString(R.string.prompt_design_title), false, "design.md"),
+            PromptItem("security", getString(R.string.prompt_security_title), false, "security.md"),
+            PromptItem("bug_hunt", getString(R.string.prompt_bug_hunt_title), false, "bug_hunt.md"),
+            PromptItem("dependencies", getString(R.string.prompt_update_dependencies_title), false, "update_dependencies.md"),
+            PromptItem("readme", getString(R.string.prompt_readme_title), false, "readme.md"),
+            PromptItem("simplify", getString(R.string.prompt_simplify_title), false, "simplify.md"),
+            PromptItem("refactor", getString(R.string.prompt_refactor_title), false, "refactor.md"),
+            PromptItem("unit_tests", getString(R.string.prompt_unit_tests_title), false, "unit_tests.md"),
+            PromptItem("janitor", getString(R.string.prompt_janitor_title), false, "janitor.md"),
+            PromptItem("accessibility", getString(R.string.prompt_accessibility_title), false, "accessibility.md")
+        )
+
+        val gson = Gson()
+
+        // Load custom prompts
+        val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+        val customPrompts: List<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
+            val type = object : TypeToken<List<PromptItem>>() {}.type
+            gson.fromJson(customPromptsJson, type)
+        } else {
+            emptyList()
+        }
+
+        // Load disabled prompts
+        val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
+        val disabledPrompts: Set<String> = if (!disabledPromptsJson.isNullOrEmpty()) {
+            val type = object : TypeToken<Set<String>>() {}.type
+            gson.fromJson(disabledPromptsJson, type)
+        } else {
+            emptySet()
+        }
+
+        val allPrompts = (defaultPrompts + customPrompts).filter { !disabledPrompts.contains(it.id) }.toMutableList()
+
+        // Apply saved order
+        val promptOrderJson = PreferenceUtils.getPromptOrderJson(this)
+        if (!promptOrderJson.isNullOrEmpty()) {
+            val type = object : TypeToken<List<String>>() {}.type
+            val savedOrder: List<String> = gson.fromJson(promptOrderJson, type)
+
+            val orderedPrompts = mutableListOf<PromptItem>()
+            for (id in savedOrder) {
+                val item = allPrompts.find { it.id == id }
+                if (item != null) {
+                    orderedPrompts.add(item)
+                    allPrompts.remove(item)
+                }
+            }
+            // Add any new/remaining prompts to the end
+            orderedPrompts.addAll(allPrompts)
+            allPrompts.clear()
+            allPrompts.addAll(orderedPrompts)
+        }
+
+        allPrompts.add(PromptItem("custom_add", "➕ Custom", false, ""))
+
+        promptAdapter.submitList(allPrompts)
+    }
+
+    private fun showAddCustomPromptDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_custom_prompt, null)
+        val dialog = BottomSheetDialog(this)
+        dialog.setContentView(dialogView)
+
+        val etTitle = dialogView.findViewById<EditText>(R.id.etPromptTitle)
+        val etEmoji = dialogView.findViewById<EditText>(R.id.etPromptEmoji)
+        val etBody = dialogView.findViewById<EditText>(R.id.etPromptBody)
+        val btnSave = dialogView.findViewById<Button>(R.id.btnSavePrompt)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancelPrompt)
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+
+        btnSave.setOnClickListener {
+            val title = etTitle.text.toString().trim()
+            val emoji = etEmoji.text.toString().trim()
+            val body = etBody.text.toString().trim()
+
+            if (title.isEmpty() || body.isEmpty()) {
+                Toast.makeText(this, "Title and body are required", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val finalTitle = if (emoji.isNotEmpty()) "$emoji $title" else title
+            val newCustomPrompt = PromptItem(
+                id = "custom_${System.currentTimeMillis()}",
+                title = finalTitle,
+                isCustom = true,
+                body = body
+            )
+
+            saveCustomPrompt(newCustomPrompt)
+            dialog.dismiss()
+            loadPrompts() // Reload to show the new prompt
+        }
+
+        dialog.show()
+    }
+
+    private fun saveCustomPrompt(prompt: PromptItem) {
+        val gson = Gson()
+        val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+        val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
+            val type = object : TypeToken<MutableList<PromptItem>>() {}.type
+            gson.fromJson(customPromptsJson, type)
+        } else {
+            mutableListOf()
+        }
+
+        customPrompts.add(prompt)
+        PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
+    }
+
+    private fun savePromptOrder(items: List<PromptItem>) {
+        val order = items.filter { it.id != "custom_add" }.map { it.id }
+        val gson = Gson()
+        PreferenceUtils.setPromptOrderJson(this, gson.toJson(order))
+    }
+
+    private fun disablePrompt(item: PromptItem) {
+        val gson = Gson()
+        val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
+        val disabledPrompts: MutableSet<String> = if (!disabledPromptsJson.isNullOrEmpty()) {
+            val type = object : TypeToken<MutableSet<String>>() {}.type
+            gson.fromJson(disabledPromptsJson, type)
+        } else {
+            mutableSetOf()
+        }
+
+        disabledPrompts.add(item.id)
+        PreferenceUtils.setDisabledPromptsJson(this, gson.toJson(disabledPrompts))
+
+        Toast.makeText(this, "Prompt hidden. You can re-enable it in Settings.", Toast.LENGTH_SHORT).show()
+
+        // Remove from current adapter list without reloading everything, or reload
+        loadPrompts()
     }
 
     private fun setupKeyboardFocusClear() {

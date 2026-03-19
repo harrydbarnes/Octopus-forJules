@@ -161,6 +161,8 @@
     <string name="prompt_simplify_title">✂️ Simplify</string>
     <string name="prompt_refactor_title">🏗️ Refactor</string>
     <string name="prompt_unit_tests_title">🧪 Unit Tests</string>
+    <string name="prompt_janitor_title">🧹 Janitor</string>
+    <string name="prompt_accessibility_title">♿ Accessibility</string>
     <string name="prompt_gallery_title">Prompt Gallery:</string>
     <string name="error_loading_prompt">Error loading prompt</string>
 
