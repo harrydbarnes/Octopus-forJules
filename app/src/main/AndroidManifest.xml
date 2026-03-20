@@ -63,7 +63,8 @@
         <activity
             android:name=".ui.ManagePromptsActivity"
             android:label="Manage Prompts"
-            android:theme="@style/Theme.Octopus" />
+            android:theme="@style/Theme.Octopus"
+            android:parentActivityName=".ui.SettingsActivity" />
 
     </application>
 

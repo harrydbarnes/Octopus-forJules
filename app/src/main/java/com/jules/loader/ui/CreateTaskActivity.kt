@@ -62,6 +62,9 @@ class CreateTaskActivity : BaseActivity() {
             if (::promptAdapter.isInitialized && promptAdapter.isEditMode) {
                 promptAdapter.isEditMode = false
                 savePromptOrder(promptAdapter.getItems())
+            } else {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
             }
         }
     }
