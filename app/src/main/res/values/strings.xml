@@ -166,6 +166,8 @@
     <string name="prompt_gallery_title">Prompt Gallery:</string>
     <string name="error_loading_prompt">Error loading prompt</string>
 
+    <string name="appbar_scrolling_view_behavior" translatable="false">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
+
     <!-- Plan Approval -->
     <string name="plan_approval_title">Plan Ready for Approval</string>
     <string name="plan_approval_subtitle">Review the plan above, then approve to continue</string>
