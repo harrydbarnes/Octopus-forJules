@@ -46,7 +46,6 @@ class ManagePromptsActivity : BaseActivity() {
         updateMenuVisibility()
 
         adapter = ManagePromptAdapter(
-            items = allPrompts,
             disabledIds = disabledPrompts,
             onCheckedChange = { item, isChecked ->
                 if (isChecked) {
@@ -100,17 +99,17 @@ class ManagePromptsActivity : BaseActivity() {
 
     private fun loadData() {
         val defaultPrompts = listOf(
-            PromptItem("performance", getString(R.string.prompt_performance_title), false, "performance.md"),
-            PromptItem("design", getString(R.string.prompt_design_title), false, "design.md"),
-            PromptItem("security", getString(R.string.prompt_security_title), false, "security.md"),
-            PromptItem("bug_hunt", getString(R.string.prompt_bug_hunt_title), false, "bug_hunt.md"),
-            PromptItem("dependencies", getString(R.string.prompt_update_dependencies_title), false, "update_dependencies.md"),
-            PromptItem("readme", getString(R.string.prompt_readme_title), false, "readme.md"),
-            PromptItem("simplify", getString(R.string.prompt_simplify_title), false, "simplify.md"),
-            PromptItem("refactor", getString(R.string.prompt_refactor_title), false, "refactor.md"),
-            PromptItem("unit_tests", getString(R.string.prompt_unit_tests_title), false, "unit_tests.md"),
-            PromptItem("janitor", getString(R.string.prompt_janitor_title), false, "janitor.md"),
-            PromptItem("accessibility", getString(R.string.prompt_accessibility_title), false, "accessibility.md")
+            PromptItem("performance", getString(R.string.prompt_performance_title), false, "performance.md", true, "performance.md"),
+            PromptItem("design", getString(R.string.prompt_design_title), false, "design.md", true, "design.md"),
+            PromptItem("security", getString(R.string.prompt_security_title), false, "security.md", true, "security.md"),
+            PromptItem("bug_hunt", getString(R.string.prompt_bug_hunt_title), false, "bug_hunt.md", true, "bug_hunt.md"),
+            PromptItem("dependencies", getString(R.string.prompt_update_dependencies_title), false, "update_dependencies.md", true, "update_dependencies.md"),
+            PromptItem("readme", getString(R.string.prompt_readme_title), false, "readme.md", true, "readme.md"),
+            PromptItem("simplify", getString(R.string.prompt_simplify_title), false, "simplify.md", true, "simplify.md"),
+            PromptItem("refactor", getString(R.string.prompt_refactor_title), false, "refactor.md", true, "refactor.md"),
+            PromptItem("unit_tests", getString(R.string.prompt_unit_tests_title), false, "unit_tests.md", true, "unit_tests.md"),
+            PromptItem("janitor", getString(R.string.prompt_janitor_title), false, "janitor.md", true, "janitor.md"),
+            PromptItem("accessibility", getString(R.string.prompt_accessibility_title), false, "accessibility.md", true, "accessibility.md")
         )
 
         val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
@@ -150,10 +149,14 @@ class ManagePromptsActivity : BaseActivity() {
                 }
             }
             orderedPrompts.addAll(combined)
+            allPrompts.clear()
             allPrompts.addAll(orderedPrompts)
         } else {
+            allPrompts.clear()
             allPrompts.addAll(combined)
         }
+
+        adapter.submitList(allPrompts.toList())
     }
 
     private fun updateMenuVisibility() {
@@ -207,7 +210,7 @@ class ManagePromptsActivity : BaseActivity() {
         val pos = allPrompts.indexOf(item)
         if (pos != -1) {
             allPrompts.removeAt(pos)
-            adapter.notifyItemRemoved(pos)
+            adapter.submitList(allPrompts.toList())
             savePromptOrder(allPrompts)
         }
     }
@@ -252,7 +255,10 @@ class ManagePromptsActivity : BaseActivity() {
                 if (itemToEdit.body.endsWith(".md")) {
                     val defaultBody = try {
                         assets.open("prompts/${itemToEdit.body}").bufferedReader().use { it.readText() }
-                    } catch (e: Exception) { "" }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ManagePrompts", "Error reading asset ${itemToEdit.body}", e)
+                        ""
+                    }
                     etBody.setText(defaultBody)
                 } else {
                     etBody.setText(itemToEdit.body)
@@ -279,27 +285,16 @@ class ManagePromptsActivity : BaseActivity() {
                             }
 
                             try {
-                                val originalFileName = when(itemToEdit.id) {
-                                    "performance" -> "performance.md"
-                                    "design" -> "design.md"
-                                    "security" -> "security.md"
-                                    "bug_hunt" -> "bug_hunt.md"
-                                    "dependencies" -> "update_dependencies.md"
-                                    "readme" -> "readme.md"
-                                    "simplify" -> "simplify.md"
-                                    "refactor" -> "refactor.md"
-                                    "unit_tests" -> "unit_tests.md"
-                                    "janitor" -> "janitor.md"
-                                    "accessibility" -> "accessibility.md"
-                                    else -> "${itemToEdit.id}.md"
-                                }
+                                val originalFileName = itemToEdit.originalBody ?: "${itemToEdit.id}.md"
 
                                 val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
                                 if (allIdx != -1) {
                                     allPrompts[allIdx] = allPrompts[allIdx].copy(title = itemToEdit.title, body = originalFileName)
                                     adapter.notifyItemChanged(allIdx)
                                 }
-                            } catch (e: Exception) { }
+                            } catch (e: Exception) {
+                                android.util.Log.e("ManagePrompts", "Error resetting prompt ${itemToEdit.id}", e)
+                            }
 
                             dialog.dismiss()
                         }
@@ -347,19 +342,19 @@ class ManagePromptsActivity : BaseActivity() {
                 val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
                 if (allIdx != -1) {
                     allPrompts[allIdx] = updatedItem
-                    adapter.notifyItemChanged(allIdx)
+                    adapter.submitList(allPrompts.toList())
                 }
             } else {
                 // Add
                 val newItem = PromptItem(
-                    id = "custom_${System.currentTimeMillis()}",
+                    id = "custom_${java.util.UUID.randomUUID()}",
                     title = finalTitle,
                     isCustom = true,
                     body = body
                 )
                 customPrompts.add(newItem)
                 allPrompts.add(newItem)
-                adapter.notifyItemInserted(allPrompts.size - 1)
+                adapter.submitList(allPrompts.toList())
                 savePromptOrder(allPrompts)
             }
 

@@ -8,11 +8,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.jules.loader.R
 import java.util.Collections
+
+class PromptDiffCallback : DiffUtil.ItemCallback<PromptItem>() {
+    override fun areItemsTheSame(oldItem: PromptItem, newItem: PromptItem): Boolean {
+        return oldItem.id == newItem.id
+    }
+
+    override fun areContentsTheSame(oldItem: PromptItem, newItem: PromptItem): Boolean {
+        return oldItem == newItem
+    }
+}
 
 open class PromptAdapter(
     private val onItemClick: (PromptItem) -> Unit,
@@ -20,9 +32,8 @@ open class PromptAdapter(
     private val onItemsReordered: (List<PromptItem>) -> Unit,
     private val onItemDisabled: (PromptItem) -> Unit,
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
-) : RecyclerView.Adapter<PromptAdapter.PromptViewHolder>() {
+) : ListAdapter<PromptItem, PromptAdapter.PromptViewHolder>(PromptDiffCallback()) {
 
-    private val items = mutableListOf<PromptItem>()
 
     // We maintain a list of active view holders to manually animate/update them
     // without triggering a full notifyDataSetChanged() that would cancel an active drag.
@@ -41,26 +52,25 @@ open class PromptAdapter(
 
     protected open fun onEditModeChanged(editMode: Boolean) {}
 
-    fun submitList(newItems: List<PromptItem>) {
-        items.clear()
-        items.addAll(newItems)
-        notifyDataSetChanged()
-    }
-
-    fun getItems(): List<PromptItem> = items
+    fun getItems(): List<PromptItem> = currentList
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
+        val currentListMutable = currentList.toMutableList()
         if (fromPosition < toPosition) {
             for (i in fromPosition until toPosition) {
-                Collections.swap(items, i, i + 1)
+                Collections.swap(currentListMutable, i, i + 1)
             }
         } else {
             for (i in fromPosition downTo toPosition + 1) {
-                Collections.swap(items, i, i - 1)
+                Collections.swap(currentListMutable, i, i - 1)
             }
         }
-        notifyItemMoved(fromPosition, toPosition)
-        onItemsReordered(items)
+        // Instead of triggering a full diff visually for a drag (which resets the view holder animations),
+        // we can just notify item moved. Since we extend ListAdapter, we need to pass the new list
+        // but avoid DiffUtil tearing down the views. submitList handles this well enough, but to maintain the dragging
+        // state seamlessly, notifyItemMoved is better. But with ListAdapter, we must submit the new list.
+        submitList(currentListMutable)
+        onItemsReordered(currentListMutable)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PromptViewHolder {
@@ -74,7 +84,7 @@ open class PromptAdapter(
     }
 
     override fun onBindViewHolder(holder: PromptViewHolder, position: Int) {
-        holder.bind(items[position])
+        holder.bind(getItem(position))
     }
 
     override fun onViewAttachedToWindow(holder: PromptViewHolder) {
@@ -88,8 +98,6 @@ open class PromptAdapter(
         activeHolders.remove(holder)
         holder.stopWiggle()
     }
-
-    override fun getItemCount(): Int = items.size
 
     inner class PromptViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val btnPrompt: MaterialButton = itemView.findViewById(R.id.btnPrompt)

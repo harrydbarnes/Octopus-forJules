@@ -404,17 +404,17 @@ class CreateTaskActivity : BaseActivity() {
 
     private fun loadPrompts() {
         val defaultPrompts = listOf(
-            PromptItem("performance", getString(R.string.prompt_performance_title), false, "performance.md"),
-            PromptItem("design", getString(R.string.prompt_design_title), false, "design.md"),
-            PromptItem("security", getString(R.string.prompt_security_title), false, "security.md"),
-            PromptItem("bug_hunt", getString(R.string.prompt_bug_hunt_title), false, "bug_hunt.md"),
-            PromptItem("dependencies", getString(R.string.prompt_update_dependencies_title), false, "update_dependencies.md"),
-            PromptItem("readme", getString(R.string.prompt_readme_title), false, "readme.md"),
-            PromptItem("simplify", getString(R.string.prompt_simplify_title), false, "simplify.md"),
-            PromptItem("refactor", getString(R.string.prompt_refactor_title), false, "refactor.md"),
-            PromptItem("unit_tests", getString(R.string.prompt_unit_tests_title), false, "unit_tests.md"),
-            PromptItem("janitor", getString(R.string.prompt_janitor_title), false, "janitor.md"),
-            PromptItem("accessibility", getString(R.string.prompt_accessibility_title), false, "accessibility.md")
+            PromptItem("performance", getString(R.string.prompt_performance_title), false, "performance.md", true, "performance.md"),
+            PromptItem("design", getString(R.string.prompt_design_title), false, "design.md", true, "design.md"),
+            PromptItem("security", getString(R.string.prompt_security_title), false, "security.md", true, "security.md"),
+            PromptItem("bug_hunt", getString(R.string.prompt_bug_hunt_title), false, "bug_hunt.md", true, "bug_hunt.md"),
+            PromptItem("dependencies", getString(R.string.prompt_update_dependencies_title), false, "update_dependencies.md", true, "update_dependencies.md"),
+            PromptItem("readme", getString(R.string.prompt_readme_title), false, "readme.md", true, "readme.md"),
+            PromptItem("simplify", getString(R.string.prompt_simplify_title), false, "simplify.md", true, "simplify.md"),
+            PromptItem("refactor", getString(R.string.prompt_refactor_title), false, "refactor.md", true, "refactor.md"),
+            PromptItem("unit_tests", getString(R.string.prompt_unit_tests_title), false, "unit_tests.md", true, "unit_tests.md"),
+            PromptItem("janitor", getString(R.string.prompt_janitor_title), false, "janitor.md", true, "janitor.md"),
+            PromptItem("accessibility", getString(R.string.prompt_accessibility_title), false, "accessibility.md", true, "accessibility.md")
         )
 
         val gson = Gson()
@@ -497,7 +497,7 @@ class CreateTaskActivity : BaseActivity() {
 
             val finalTitle = if (emoji.isNotEmpty()) "$emoji $title" else title
             val newCustomPrompt = PromptItem(
-                id = "custom_${System.currentTimeMillis()}",
+                id = "custom_${java.util.UUID.randomUUID()}",
                 title = finalTitle,
                 isCustom = true,
                 body = body
