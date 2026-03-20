@@ -42,9 +42,6 @@ class ManagePromptsActivity : BaseActivity() {
             }
         }
 
-        loadData()
-        updateMenuVisibility()
-
         adapter = ManagePromptAdapter(
             disabledIds = disabledPrompts,
             onCheckedChange = { item, isChecked ->
@@ -59,6 +56,9 @@ class ManagePromptsActivity : BaseActivity() {
             onDeleteClick = { item -> deleteCustomPrompt(item) },
             onOrderChanged = { newOrder -> savePromptOrder(newOrder) }
         )
+
+        loadData()
+        updateMenuVisibility()
 
         binding.rvManagePrompts.layoutManager = LinearLayoutManager(this)
         binding.rvManagePrompts.adapter = adapter

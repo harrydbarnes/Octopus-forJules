@@ -561,7 +561,7 @@ class CreateTaskActivity : BaseActivity() {
     }
 
     override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
-        if (ev.action == android.view.MotionEvent.ACTION_DOWN) {
+        if (ev.action == android.view.MotionEvent.ACTION_UP) {
             val v = currentFocus
             if (v is android.widget.EditText) {
                 val outRect = android.graphics.Rect()
