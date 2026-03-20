@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.TypedValue
 import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.jules.loader.R
 
@@ -17,7 +18,13 @@ class PromptDividerItemDecoration(context: Context) : RecyclerView.ItemDecoratio
         val typedValue = TypedValue()
         val theme = context.theme
         if (theme.resolveAttribute(R.attr.promptDividerColor, typedValue, true)) {
-            color = typedValue.data
+            color = if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT
+                && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT
+            ) {
+                typedValue.data
+            } else {
+                ContextCompat.getColor(context, typedValue.resourceId)
+            }
         } else {
             // Fallback
             color = 0xFF424242.toInt()

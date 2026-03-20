@@ -25,6 +25,8 @@
         app:tint="@android:color/white"
         android:padding="4dp"
         android:visibility="gone"
-        android:elevation="4dp" />
+        android:elevation="4dp"
+        android:contentDescription="@string/content_desc_hide_prompt"
+        android:importantForAccessibility="yes" />
 
 </FrameLayout>

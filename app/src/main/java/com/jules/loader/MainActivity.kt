@@ -303,6 +303,16 @@ class MainActivity : BaseActivity() {
         retryJob?.cancel()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        // Temporarily detach the adapter before saving state to prevent
+        // RecyclerView from including large session data in the Bundle,
+        // which could cause TransactionTooLargeException on config changes.
+        val adapter = binding.sessionsRecyclerView.adapter
+        binding.sessionsRecyclerView.adapter = null
+        super.onSaveInstanceState(outState)
+        binding.sessionsRecyclerView.adapter = adapter
+    }
+
     private fun setupSearch() {
         binding.btnSearch.contentDescription = getString(R.string.action_search)
         binding.btnSearch.setOnClickListener {

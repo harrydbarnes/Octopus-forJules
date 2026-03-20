@@ -180,7 +180,6 @@ class ManagePromptsActivity : BaseActivity() {
                 allPrompts.clear()
                 disabledPrompts.clear()
                 loadData()
-                adapter.notifyDataSetChanged()
                 updateMenuVisibility()
             }
             .setNegativeButton("Cancel", null)

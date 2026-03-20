@@ -62,7 +62,7 @@
 
         <activity
             android:name=".ui.ManagePromptsActivity"
-            android:label="Manage Prompts"
+            android:label="@string/title_manage_prompts"
             android:theme="@style/Theme.Octopus"
             android:parentActivityName=".ui.SettingsActivity" />
 

@@ -166,6 +166,25 @@
     <string name="prompt_gallery_title">Prompt Gallery:</string>
     <string name="error_loading_prompt">Error loading prompt</string>
 
+    <!-- Manage Prompts Screen -->
+    <string name="title_manage_prompts">Manage Prompts</string>
+    <string name="fab_custom_prompt">Custom Prompt</string>
+    <string name="menu_reset_all">Reset</string>
+    <string name="setting_manage_prompts">Manage Prompts</string>
+
+    <!-- Add/Edit Custom Prompt Dialog -->
+    <string name="dialog_add_custom_prompt_title">Add Custom Prompt</string>
+    <string name="hint_prompt_title">Title</string>
+    <string name="hint_prompt_emoji">Emoji (Optional)</string>
+    <string name="hint_prompt_body">Prompt Body</string>
+    <string name="action_reset_prompt">Reset</string>
+
+    <!-- Accessibility -->
+    <string name="content_desc_hide_prompt">Hide prompt</string>
+    <string name="content_desc_drag_handle">Drag to reorder</string>
+    <string name="content_desc_edit_prompt">Edit prompt</string>
+    <string name="content_desc_delete_prompt">Delete prompt</string>
+
     <string name="appbar_scrolling_view_behavior" translatable="false">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
 
     <!-- Plan Approval -->
