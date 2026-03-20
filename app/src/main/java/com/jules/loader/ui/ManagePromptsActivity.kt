@@ -170,9 +170,9 @@ class ManagePromptsActivity : BaseActivity() {
 
     private fun showGlobalResetConfirmation() {
         AlertDialog.Builder(this)
-            .setTitle("Reset All Prompts")
-            .setMessage("Are you sure you want to reset all prompts? This will delete all custom prompts, restore default prompt bodies, reset the ordering, and re-enable any hidden prompts.")
-            .setPositiveButton("Reset") { _, _ ->
+            .setTitle(R.string.dialog_reset_all_prompts_title)
+            .setMessage(R.string.dialog_reset_all_prompts_message)
+            .setPositiveButton(R.string.menu_reset_all) { _, _ ->
                 PreferenceUtils.setCustomPromptsJson(this, "")
                 PreferenceUtils.setPromptOrderJson(this, "")
                 PreferenceUtils.setDisabledPromptsJson(this, "")
@@ -182,7 +182,7 @@ class ManagePromptsActivity : BaseActivity() {
                 loadData()
                 updateMenuVisibility()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -266,9 +266,9 @@ class ManagePromptsActivity : BaseActivity() {
                 btnReset.visibility = View.VISIBLE
                 btnReset.setOnClickListener {
                     AlertDialog.Builder(this)
-                        .setTitle("Reset Prompt")
-                        .setMessage("Are you sure you want to reset this prompt to its default?")
-                        .setPositiveButton("Reset") { _, _ ->
+                        .setTitle(R.string.dialog_reset_prompt_title)
+                        .setMessage(R.string.dialog_reset_prompt_message)
+                        .setPositiveButton(R.string.action_reset_prompt) { _, _ ->
                             val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
                             val type = object : TypeToken<MutableList<PromptItem>>() {}.type
                             val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
@@ -297,7 +297,7 @@ class ManagePromptsActivity : BaseActivity() {
 
                             dialog.dismiss()
                         }
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(R.string.action_cancel, null)
                         .show()
                 }
             }
