@@ -174,10 +174,12 @@
 
     <!-- Add/Edit Custom Prompt Dialog -->
     <string name="dialog_add_custom_prompt_title">Add Custom Prompt</string>
+    <string name="dialog_edit_custom_prompt_title">Edit Prompt</string>
     <string name="hint_prompt_title">Title</string>
     <string name="hint_prompt_emoji">Emoji (Optional)</string>
     <string name="hint_prompt_body">Prompt Body</string>
     <string name="action_reset_prompt">Reset</string>
+    <string name="toast_prompt_fields_required">Title and body are required</string>
 
     <!-- Reset All Prompts Confirmation Dialog -->
     <string name="dialog_reset_all_prompts_title">Reset All Prompts</string>

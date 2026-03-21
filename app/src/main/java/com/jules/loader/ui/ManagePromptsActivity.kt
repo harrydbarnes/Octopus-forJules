@@ -236,7 +236,7 @@ class ManagePromptsActivity : BaseActivity() {
         val btnReset = dialogView.findViewById<Button>(R.id.btnResetPrompt)
 
         if (itemToEdit != null) {
-            tvDialogTitle.text = "Edit Prompt"
+            tvDialogTitle.text = getString(R.string.dialog_edit_custom_prompt_title)
             // Very naive split for emoji and title
             val parts = itemToEdit.title.split(" ", limit = 2)
             if (parts.size == 2 && isEmoji(parts[0])) {
@@ -311,7 +311,7 @@ class ManagePromptsActivity : BaseActivity() {
             val body = etBody.text.toString().trim()
 
             if (title.isEmpty() || body.isEmpty()) {
-                Toast.makeText(this, "Title and body are required", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_prompt_fields_required, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
