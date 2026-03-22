@@ -73,6 +73,8 @@
     <string name="game_tap_to_restart">Tap here to restart</string>
     <string name="game_tap_to_play">Tap to Play</string>
     <string name="game_over">GAME OVER</string>
+    <string name="game_time_elapsed">Time: %1$s</string>
+    <string name="game_best_time">Best: %1$s</string>
 
     <!-- Main Activity -->
     <string name="sessions_title">jules sessions</string>

@@ -96,6 +96,9 @@ class OctopusGameView @JvmOverloads constructor(
     private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val tapToPlayText: String = context.getString(com.jules.loader.R.string.game_tap_to_play)
     private val gameOverText: String = context.getString(com.jules.loader.R.string.game_over)
+    private val tapToRestartText: String = context.getString(com.jules.loader.R.string.game_tap_to_restart)
+    private val gameTimeFormat: String = context.getString(com.jules.loader.R.string.game_time_elapsed)
+    private val gameBestFormat: String = context.getString(com.jules.loader.R.string.game_best_time)
 
     // ── Reusable drawing objects (avoid per-frame allocations) ──────────
     private val clipPath = Path()
@@ -452,7 +455,7 @@ class OctopusGameView @JvmOverloads constructor(
             canvas.drawText(timerText, 16f * dp, 28f * dp, scorePaint)
 
             // Best time top-right (seconds only)
-            val bestText = "Best: ${formatTime(highScore.toFloat())}"
+            val bestText = String.format(gameBestFormat, formatTime(highScore.toFloat()))
             val bestWidth = scorePaint.measureText(bestText)
             canvas.drawText(bestText, w - bestWidth - 16f * dp, 28f * dp, scorePaint)
         }
@@ -462,10 +465,10 @@ class OctopusGameView @JvmOverloads constructor(
             overlayPaint.color = Color.argb(120, 0, 0, 0)
             canvas.drawRect(0f, 0f, w, h, overlayPaint)
             canvas.drawText(gameOverText, w / 2f, h / 2f, overlayTextPaint)
-            canvas.drawText("Time: ${formatTime(elapsedTime)}", w / 2f, h / 2f + 30f * dp, scorePaint.apply {
+            canvas.drawText(String.format(gameTimeFormat, formatTime(elapsedTime)), w / 2f, h / 2f + 30f * dp, scorePaint.apply {
                 textAlign = Paint.Align.CENTER
             })
-            canvas.drawText("Tap to restart", w / 2f, h / 2f + 52f * dp, hintPaint)
+            canvas.drawText(tapToRestartText, w / 2f, h / 2f + 52f * dp, hintPaint)
             scorePaint.textAlign = Paint.Align.LEFT // reset
         }
     }

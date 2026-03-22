@@ -304,17 +304,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        // Temporarily detach the adapter before saving state to prevent
-        // RecyclerView from including large session data in the Bundle,
-        // which could cause TransactionTooLargeException on config changes.
-        val recyclerView = binding.sessionsRecyclerView
-        val adapter = recyclerView.adapter
-        recyclerView.adapter = null
-        try {
-            super.onSaveInstanceState(outState)
-        } finally {
-            recyclerView.adapter = adapter
-        }
+        super.onSaveInstanceState(outState)
     }
 
     private fun setupSearch() {
