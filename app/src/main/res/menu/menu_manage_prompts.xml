@@ -3,6 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_reset_all"
-        android:title="Reset"
+        android:title="@string/menu_reset_all"
         app:showAsAction="never" />
 </menu>

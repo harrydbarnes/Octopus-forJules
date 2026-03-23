@@ -118,10 +118,13 @@ open class PromptAdapter(
                 btnPrompt.setOnClickListener {
                     if (!isEditMode) onCustomAddClick()
                 }
+                btnPrompt.setOnLongClickListener(null)
+                btnRemove.setOnClickListener(null)
 
                 // Ensure edit mode UI is correct initially
                 updateEditModeUI()
             } else {
+                btnPrompt.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
                 btnPrompt.setStrokeColorResource(android.R.color.transparent)
                 btnPrompt.strokeWidth = 0
                 btnPrompt.setOnClickListener {

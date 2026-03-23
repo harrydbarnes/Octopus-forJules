@@ -170,9 +170,9 @@ class ManagePromptsActivity : BaseActivity() {
 
     private fun showGlobalResetConfirmation() {
         AlertDialog.Builder(this)
-            .setTitle("Reset All Prompts")
-            .setMessage("Are you sure you want to reset all prompts? This will delete all custom prompts, restore default prompt bodies, reset the ordering, and re-enable any hidden prompts.")
-            .setPositiveButton("Reset") { _, _ ->
+            .setTitle(R.string.dialog_reset_all_prompts_title)
+            .setMessage(R.string.dialog_reset_all_prompts_message)
+            .setPositiveButton(R.string.menu_reset_all) { _, _ ->
                 PreferenceUtils.setCustomPromptsJson(this, "")
                 PreferenceUtils.setPromptOrderJson(this, "")
                 PreferenceUtils.setDisabledPromptsJson(this, "")
@@ -180,10 +180,9 @@ class ManagePromptsActivity : BaseActivity() {
                 allPrompts.clear()
                 disabledPrompts.clear()
                 loadData()
-                adapter.notifyDataSetChanged()
                 updateMenuVisibility()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -237,7 +236,7 @@ class ManagePromptsActivity : BaseActivity() {
         val btnReset = dialogView.findViewById<Button>(R.id.btnResetPrompt)
 
         if (itemToEdit != null) {
-            tvDialogTitle.text = "Edit Prompt"
+            tvDialogTitle.text = getString(R.string.dialog_edit_custom_prompt_title)
             // Very naive split for emoji and title
             val parts = itemToEdit.title.split(" ", limit = 2)
             if (parts.size == 2 && isEmoji(parts[0])) {
@@ -267,9 +266,9 @@ class ManagePromptsActivity : BaseActivity() {
                 btnReset.visibility = View.VISIBLE
                 btnReset.setOnClickListener {
                     AlertDialog.Builder(this)
-                        .setTitle("Reset Prompt")
-                        .setMessage("Are you sure you want to reset this prompt to its default?")
-                        .setPositiveButton("Reset") { _, _ ->
+                        .setTitle(R.string.dialog_reset_prompt_title)
+                        .setMessage(R.string.dialog_reset_prompt_message)
+                        .setPositiveButton(R.string.action_reset_prompt) { _, _ ->
                             val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
                             val type = object : TypeToken<MutableList<PromptItem>>() {}.type
                             val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
@@ -298,7 +297,7 @@ class ManagePromptsActivity : BaseActivity() {
 
                             dialog.dismiss()
                         }
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(R.string.action_cancel, null)
                         .show()
                 }
             }
@@ -312,7 +311,7 @@ class ManagePromptsActivity : BaseActivity() {
             val body = etBody.text.toString().trim()
 
             if (title.isEmpty() || body.isEmpty()) {
-                Toast.makeText(this, "Title and body are required", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_prompt_fields_required, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
@@ -14,7 +15,9 @@
         android:layout_height="wrap_content"
         android:src="@drawable/ic_drag_handle"
         app:tint="?attr/colorControlNormal"
-        android:layout_marginEnd="16dp" />
+        android:layout_marginEnd="16dp"
+        android:contentDescription="@string/content_desc_drag_handle"
+        android:importantForAccessibility="yes" />
 
     <TextView
         android:id="@+id/tvPromptTitle"
@@ -22,7 +25,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:text="Prompt Title" />
+        tools:text="Prompt Title" />
 
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchPrompt"
@@ -38,6 +41,7 @@
         app:tint="?attr/colorControlNormal"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="8dp"
+        android:contentDescription="@string/content_desc_edit_prompt"
         android:visibility="gone" />
 
     <ImageView
@@ -48,6 +52,7 @@
         app:tint="?attr/colorError"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="8dp"
+        android:contentDescription="@string/content_desc_delete_prompt"
         android:visibility="gone" />
 
 </LinearLayout>

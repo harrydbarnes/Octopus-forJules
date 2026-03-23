@@ -107,7 +107,7 @@ class MainActivity : BaseActivity() {
                     startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
                     finish()
                 } else {
-                    setupMainActivity()
+                    setupMainActivity(savedInstanceState)
                 }
             } finally {
                 isReady = true
@@ -115,7 +115,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun setupMainActivity() {
+    private fun setupMainActivity(savedInstanceState: Bundle?) {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)
 
@@ -240,7 +240,23 @@ class MainActivity : BaseActivity() {
         setupSearch()
         setupFilters()
 
-        loadSessions()
+        val restoredSessions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            savedInstanceState?.getParcelableArrayList(KEY_SESSIONS, Session::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            savedInstanceState?.getParcelableArrayList(KEY_SESSIONS)
+        }
+        val restoredNextPageToken = savedInstanceState?.getString(KEY_NEXT_PAGE_TOKEN)
+
+        if (!restoredSessions.isNullOrEmpty()) {
+            allSessions = restoredSessions
+            nextPageToken = restoredNextPageToken
+            hideErrorOverlay()
+            binding.sessionsRecyclerView.visibility = View.VISIBLE
+            applyFilters()
+        } else {
+            loadSessions()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -301,6 +317,14 @@ class MainActivity : BaseActivity() {
             binding.sessionsRecyclerView.setRenderEffect(null)
         }
         retryJob?.cancel()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (allSessions.isNotEmpty()) {
+            outState.putParcelableArrayList(KEY_SESSIONS, ArrayList(allSessions))
+            outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
+        }
+        super.onSaveInstanceState(outState)
     }
 
     private fun setupSearch() {
