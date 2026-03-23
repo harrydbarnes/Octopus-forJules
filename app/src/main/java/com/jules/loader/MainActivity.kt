@@ -320,10 +320,9 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        if (allSessions.isNotEmpty()) {
-            outState.putParcelableArrayList(KEY_SESSIONS, ArrayList(allSessions))
-            outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
-        }
+        // Avoid saving the full allSessions list to prevent TransactionTooLargeException.
+        // Instead, persist only lightweight state needed to restore pagination.
+        outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
         super.onSaveInstanceState(outState)
     }
 

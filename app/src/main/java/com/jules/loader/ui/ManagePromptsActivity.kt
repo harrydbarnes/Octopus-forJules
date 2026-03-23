@@ -127,7 +127,8 @@ class ManagePromptsActivity : BaseActivity() {
         }
 
         val mergedPrompts = defaultPrompts.map { defaultItem ->
-            customPrompts.find { it.id == defaultItem.id } ?: defaultItem
+            val customVersion = customPrompts.find { it.id == defaultItem.id }
+            customVersion?.copy(originalTitle = defaultItem.title) ?: defaultItem.copy(originalTitle = defaultItem.title)
         }.toMutableList()
 
         // Add true custom prompts
@@ -288,7 +289,8 @@ class ManagePromptsActivity : BaseActivity() {
 
                                 val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
                                 if (allIdx != -1) {
-                                    allPrompts[allIdx] = allPrompts[allIdx].copy(title = itemToEdit.title, body = originalFileName)
+                                    val originalTitle = itemToEdit.originalTitle ?: itemToEdit.title
+                                    allPrompts[allIdx] = allPrompts[allIdx].copy(title = originalTitle, body = originalFileName)
                                     adapter.notifyItemChanged(allIdx)
                                 }
                             } catch (e: Exception) {

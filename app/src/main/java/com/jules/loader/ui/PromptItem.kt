@@ -6,5 +6,6 @@ data class PromptItem(
     val isCustom: Boolean,
     val body: String = "",
     val isEnabled: Boolean = true,
-    val originalBody: String? = null
+    val originalBody: String? = null,
+    val originalTitle: String? = null
 )
