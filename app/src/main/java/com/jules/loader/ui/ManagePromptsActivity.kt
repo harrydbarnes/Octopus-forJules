@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.view.View
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -170,7 +170,7 @@ class ManagePromptsActivity : BaseActivity() {
     }
 
     private fun showGlobalResetConfirmation() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_reset_all_prompts_title)
             .setMessage(R.string.dialog_reset_all_prompts_message)
             .setPositiveButton(R.string.menu_reset_all) { _, _ ->
@@ -266,7 +266,7 @@ class ManagePromptsActivity : BaseActivity() {
 
                 btnReset.visibility = View.VISIBLE
                 btnReset.setOnClickListener {
-                    AlertDialog.Builder(this)
+                    MaterialAlertDialogBuilder(this)
                         .setTitle(R.string.dialog_reset_prompt_title)
                         .setMessage(R.string.dialog_reset_prompt_message)
                         .setPositiveButton(R.string.action_reset_prompt) { _, _ ->
