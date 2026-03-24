@@ -76,7 +76,6 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        private const val KEY_STOP_TIME = "key_stop_time"
         private const val REFRESH_TIMEOUT_MS = 20000L
         /** Intent extra: when `true`, immediately shows the no-signal error/game overlay. */
         const val EXTRA_SIMULATE_NO_SIGNAL = "simulate_no_signal"
