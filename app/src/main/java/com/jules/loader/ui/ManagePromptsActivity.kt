@@ -291,7 +291,7 @@ class ManagePromptsActivity : BaseActivity() {
                                 if (allIdx != -1) {
                                     val originalTitle = itemToEdit.originalTitle ?: itemToEdit.title
                                     allPrompts[allIdx] = allPrompts[allIdx].copy(title = originalTitle, body = originalFileName)
-                                    adapter.notifyItemChanged(allIdx)
+                                    adapter.submitList(allPrompts.toList())
                                 }
                             } catch (e: Exception) {
                                 android.util.Log.e("ManagePrompts", "Error resetting prompt ${itemToEdit.id}", e)

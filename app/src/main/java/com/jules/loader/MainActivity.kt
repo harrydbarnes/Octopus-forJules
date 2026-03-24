@@ -76,8 +76,6 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        private const val KEY_SESSIONS = "key_sessions"
-        private const val KEY_NEXT_PAGE_TOKEN = "key_next_page_token"
         private const val KEY_STOP_TIME = "key_stop_time"
         private const val REFRESH_TIMEOUT_MS = 20000L
         /** Intent extra: when `true`, immediately shows the no-signal error/game overlay. */
@@ -240,23 +238,7 @@ class MainActivity : BaseActivity() {
         setupSearch()
         setupFilters()
 
-        val restoredSessions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            savedInstanceState?.getParcelableArrayList(KEY_SESSIONS, Session::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            savedInstanceState?.getParcelableArrayList(KEY_SESSIONS)
-        }
-        val restoredNextPageToken = savedInstanceState?.getString(KEY_NEXT_PAGE_TOKEN)
-
-        if (!restoredSessions.isNullOrEmpty()) {
-            allSessions = restoredSessions
-            nextPageToken = restoredNextPageToken
-            hideErrorOverlay()
-            binding.sessionsRecyclerView.visibility = View.VISIBLE
-            applyFilters()
-        } else {
-            loadSessions()
-        }
+        loadSessions()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -320,9 +302,8 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        // Avoid saving the full allSessions list to prevent TransactionTooLargeException.
-        // Instead, persist only lightweight state needed to restore pagination.
-        outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
+        // Avoid saving session state to prevent TransactionTooLargeException.
+        // Sessions are reloaded from the repository on restore.
         super.onSaveInstanceState(outState)
     }
 
