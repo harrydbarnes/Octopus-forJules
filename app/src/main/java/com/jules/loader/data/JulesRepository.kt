@@ -131,6 +131,8 @@ class JulesRepository private constructor(private val context: Context) {
 
     fun hasCachedSessions(): Boolean = cachedSessions != null
 
+    fun getCachedSessions(): List<Session> = cachedSessions ?: emptyList()
+
     suspend fun getSessions(pageToken: String? = null, forceRefresh: Boolean = false): ListSessionsResponse {
         // If requesting the first page without force refresh and we have cache, return it?
         // But cachedSessions is just a List<Session>, it doesn't store nextPageToken.

@@ -629,6 +629,12 @@ class MainActivity : BaseActivity() {
             startSkeletonShimmer()
             binding.errorContainer.visibility = View.GONE
             binding.sessionsRecyclerView.visibility = View.GONE
+        } else if (!forceRefresh && repository.hasCachedSessions()) {
+            // Restore rotation: immediately show cached sessions so the list is
+            // never blank while the background refresh is in flight.
+            allSessions = repository.getCachedSessions()
+            binding.sessionsRecyclerView.visibility = View.VISIBLE
+            applyFilters()
         }
 
         // Show reload spinner inside the game overlay if it's already on screen
