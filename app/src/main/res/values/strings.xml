@@ -184,6 +184,7 @@
     <string name="toast_prompt_fields_required">Title and body are required</string>
     <string name="toast_prompt_hidden">Prompt hidden. You can re-enable it in Settings.</string>
     <string name="prompt_custom_title">➕ Custom</string>
+    <string name="badge_custom">Custom</string>
 
     <!-- Reset All Prompts Confirmation Dialog -->
     <string name="dialog_reset_all_prompts_title">Reset All Prompts</string>

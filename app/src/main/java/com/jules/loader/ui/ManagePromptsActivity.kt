@@ -53,7 +53,6 @@ class ManagePromptsActivity : BaseActivity() {
                 saveDisabledPrompts()
             },
             onEditClick = { item -> showEditDialog(item) },
-            onDeleteClick = { item -> deleteCustomPrompt(item) },
             onOrderChanged = { newOrder -> savePromptOrder(newOrder) }
         )
 
@@ -161,9 +160,21 @@ class ManagePromptsActivity : BaseActivity() {
     }
 
     private fun updateMenuVisibility() {
-        val hasCustomPrompts = !PreferenceUtils.getCustomPromptsJson(this).isNullOrEmpty()
+        val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+        val hasCustomPrompts = if (!customPromptsJson.isNullOrEmpty()) {
+            val type = object : TypeToken<List<PromptItem>>() {}.type
+            val list: List<PromptItem> = gson.fromJson(customPromptsJson, type) ?: emptyList()
+            list.isNotEmpty()
+        } else false
+
         val hasCustomOrder = !PreferenceUtils.getPromptOrderJson(this).isNullOrEmpty()
-        val hasDisabledPrompts = !PreferenceUtils.getDisabledPromptsJson(this).isNullOrEmpty()
+
+        val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
+        val hasDisabledPrompts = if (!disabledPromptsJson.isNullOrEmpty()) {
+            val type = object : TypeToken<Set<String>>() {}.type
+            val set: Set<String> = gson.fromJson(disabledPromptsJson, type) ?: emptySet()
+            set.isNotEmpty()
+        } else false
 
         val isModified = hasCustomPrompts || hasCustomOrder || hasDisabledPrompts
         binding.toolbar.menu.findItem(R.id.action_reset_all)?.isVisible = isModified

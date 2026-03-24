@@ -27,32 +27,23 @@
         android:textAppearance="?attr/textAppearanceBodyLarge"
         tools:text="Prompt Title" />
 
+    <TextView
+        android:id="@+id/tvCustomBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="@string/badge_custom"
+        android:textColor="?attr/colorOnSecondaryContainer"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:background="@drawable/bg_badge_custom"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchPrompt"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp" />
-
-    <ImageView
-        android:id="@+id/btnEditPrompt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_edit"
-        app:tint="?attr/colorControlNormal"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:padding="8dp"
-        android:contentDescription="@string/content_desc_edit_prompt"
-        android:visibility="gone" />
-
-    <ImageView
-        android:id="@+id/btnDeletePrompt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_delete"
-        app:tint="?attr/colorError"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:padding="8dp"
-        android:contentDescription="@string/content_desc_delete_prompt"
-        android:visibility="gone" />
+        android:layout_height="wrap_content" />
 
 </LinearLayout>
