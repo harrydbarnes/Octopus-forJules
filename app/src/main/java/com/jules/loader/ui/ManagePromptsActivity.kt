@@ -113,16 +113,21 @@ class ManagePromptsActivity : BaseActivity() {
 
         val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
         val customPrompts: List<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<PromptItem>>() {}.type
-            gson.fromJson(customPromptsJson, type)
+            try {
+                val type = object : TypeToken<List<PromptItem>>() {}.type
+                gson.fromJson<List<PromptItem>>(customPromptsJson, type) ?: emptyList()
+            } catch (_: Exception) { emptyList() }
         } else {
             emptyList()
         }
 
         val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
         if (!disabledPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<Set<String>>() {}.type
-            disabledPrompts.addAll(gson.fromJson(disabledPromptsJson, type))
+            try {
+                val type = object : TypeToken<Set<String>>() {}.type
+                val parsed: Set<String>? = gson.fromJson(disabledPromptsJson, type)
+                if (parsed != null) disabledPrompts.addAll(parsed)
+            } catch (_: Exception) { /* ignore corrupted JSON */ }
         }
 
         val mergedPrompts = defaultPrompts.map { defaultItem ->
@@ -136,10 +141,14 @@ class ManagePromptsActivity : BaseActivity() {
         val combined = mergedPrompts.toMutableList()
 
         val promptOrderJson = PreferenceUtils.getPromptOrderJson(this)
-        if (!promptOrderJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<String>>() {}.type
-            val savedOrder: List<String> = gson.fromJson(promptOrderJson, type)
+        val savedOrder: List<String> = if (!promptOrderJson.isNullOrEmpty()) {
+            try {
+                val type = object : TypeToken<List<String>>() {}.type
+                gson.fromJson<List<String>>(promptOrderJson, type) ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+        } else emptyList()
 
+        if (savedOrder.isNotEmpty()) {
             val orderedPrompts = mutableListOf<PromptItem>()
             for (id in savedOrder) {
                 val item = combined.find { it.id == id }
@@ -292,6 +301,9 @@ class ManagePromptsActivity : BaseActivity() {
                                     }
                                 } catch (_: Exception) { /* ignore corrupted JSON */ }
                             }
+                            // Keep in-memory disabledPrompts set in sync so it doesn't
+                            // re-persist a stale disabled ID for this deleted prompt.
+                            disabledPrompts.remove(itemToEdit.id)
 
                             updateMenuVisibility()
                             dialog.dismiss()
