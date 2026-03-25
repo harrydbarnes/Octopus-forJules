@@ -194,6 +194,11 @@
     <string name="dialog_reset_prompt_title">Reset Prompt</string>
     <string name="dialog_reset_prompt_message">Are you sure you want to reset this prompt to its default?</string>
 
+    <!-- Delete Custom Prompt Confirmation Dialog -->
+    <string name="dialog_delete_custom_prompt_title">Delete Prompt</string>
+    <string name="dialog_delete_custom_prompt_message">Are you sure you want to delete this custom prompt? This cannot be undone.</string>
+    <string name="action_delete_prompt">Delete</string>
+
     <!-- Accessibility -->
     <string name="content_desc_hide_prompt">Hide prompt</string>
     <string name="content_desc_drag_handle">Drag to reorder</string>

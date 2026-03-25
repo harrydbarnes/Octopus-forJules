@@ -68,14 +68,6 @@
                     android:checked="true" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switch_date_format_mmdd"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/setting_date_format_mmdd"
-                    android:textColor="?attr/colorOnSurface"
-                    android:checked="false" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_prompt_gallery"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

@@ -251,7 +251,6 @@ class MainActivity : BaseActivity() {
         if (::adapter.isInitialized) {
             adapter.isShortenRepoNamesEnabled = shortenRepoNames
             adapter.isShortenDatesEnabled = PreferenceUtils.isShortenDatesEnabled(this)
-            adapter.isDateFormatMMDD = PreferenceUtils.isDateFormatMMDD(this)
             adapter.notifyDataSetChanged()
         }
 

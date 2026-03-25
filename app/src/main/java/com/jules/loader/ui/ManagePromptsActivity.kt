@@ -233,6 +233,7 @@ class ManagePromptsActivity : BaseActivity() {
         val btnSave = dialogView.findViewById<Button>(R.id.btnSavePrompt)
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancelPrompt)
         val btnReset = dialogView.findViewById<Button>(R.id.btnResetPrompt)
+        val btnDelete = dialogView.findViewById<Button>(R.id.btnDeletePrompt)
 
         if (itemToEdit != null) {
             tvDialogTitle.text = getString(R.string.dialog_edit_custom_prompt_title)
@@ -247,6 +248,35 @@ class ManagePromptsActivity : BaseActivity() {
 
             if (itemToEdit.isCustom) {
                 etBody.setText(itemToEdit.body)
+
+                btnDelete.visibility = View.VISIBLE
+                btnDelete.setOnClickListener {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle(R.string.dialog_delete_custom_prompt_title)
+                        .setMessage(R.string.dialog_delete_custom_prompt_message)
+                        .setPositiveButton(R.string.action_delete_prompt) { _, _ ->
+                            val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+                            val type = object : TypeToken<MutableList<PromptItem>>() {}.type
+                            val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
+                                gson.fromJson(customPromptsJson, type)
+                            } else {
+                                mutableListOf()
+                            }
+                            customPrompts.removeAll { it.id == itemToEdit.id }
+                            PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
+
+                            val pos = allPrompts.indexOfFirst { it.id == itemToEdit.id }
+                            if (pos != -1) {
+                                allPrompts.removeAt(pos)
+                                adapter.submitList(allPrompts.toList())
+                                savePromptOrder(allPrompts)
+                            }
+                            updateMenuVisibility()
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .show()
+                }
             } else {
                 // For default prompts, body might be a filename or customized body.
                 // We'll just show the current body if it doesn't end in .md, or load it from assets if it does.

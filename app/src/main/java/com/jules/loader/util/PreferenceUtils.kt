@@ -10,7 +10,6 @@ object PreferenceUtils {
     private const val KEY_PROMPT_GALLERY = "prompt_gallery"
     private const val KEY_RAW_LOGS = "raw_logs"
     private const val KEY_SHORTEN_DATES = "shorten_dates"
-    private const val KEY_DATE_FORMAT_MMDD = "date_format_mmdd"
     private const val KEY_OCTOPUS_HIGH_SCORE = "octopus_game_high_score"
     private const val KEY_CUSTOM_PROMPTS = "custom_prompts"
     private const val KEY_PROMPT_ORDER = "prompt_order"
@@ -36,10 +35,6 @@ object PreferenceUtils {
 
     fun isShortenDatesEnabled(context: Context): Boolean {
         return getPrefs(context).getBoolean(KEY_SHORTEN_DATES, true)
-    }
-
-    fun isDateFormatMMDD(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_DATE_FORMAT_MMDD, false)
     }
 
     fun getDisplayRepoName(context: Context, fullName: String): String {
@@ -72,10 +67,6 @@ object PreferenceUtils {
 
     fun setShortenDatesEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit { putBoolean(KEY_SHORTEN_DATES, enabled) }
-    }
-
-    fun setDateFormatMMDD(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_DATE_FORMAT_MMDD, enabled) }
     }
 
     fun getOctopusHighScore(context: Context): Int {
