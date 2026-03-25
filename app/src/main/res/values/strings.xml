@@ -171,7 +171,7 @@
     <!-- Manage Prompts Screen -->
     <string name="title_manage_prompts">Manage Prompts</string>
     <string name="fab_custom_prompt">Custom Prompt</string>
-    <string name="menu_reset_all">Reset</string>
+    <string name="menu_reset_all">Reset All</string>
     <string name="setting_manage_prompts">Manage Prompts</string>
 
     <!-- Add/Edit Custom Prompt Dialog -->

@@ -422,7 +422,7 @@ class MainActivity : BaseActivity() {
         popup.show()
     }
 
-    private fun applyFilters() {
+    private fun applyFilters(onCommit: (() -> Unit)? = null) {
         var filtered = allSessions
 
         // 1. Search Filter
@@ -473,7 +473,11 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        adapter.submitList(filtered)
+        if (onCommit != null) {
+            adapter.submitList(filtered, onCommit)
+        } else {
+            adapter.submitList(filtered)
+        }
         updateFilterIcon()
     }
 
@@ -827,12 +831,14 @@ class MainActivity : BaseActivity() {
                 nextPageToken = response.nextPageToken
 
                 allSessions = allSessions + newSessions
-                applyFilters()
+                // Hide the loading footer only after the new items are committed to the
+                // adapter, so the footer stays visible until the rows actually appear.
+                applyFilters { adapter.setLoading(false) }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error loading more sessions", e)
+                adapter.setLoading(false)
             } finally {
                 isLoadingMore = false
-                adapter.setLoading(false)
             }
         }
     }
