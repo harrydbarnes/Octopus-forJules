@@ -162,18 +162,22 @@ class ManagePromptsActivity : BaseActivity() {
     private fun updateMenuVisibility() {
         val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
         val hasCustomPrompts = if (!customPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<PromptItem>>() {}.type
-            val list: List<PromptItem> = gson.fromJson(customPromptsJson, type) ?: emptyList()
-            list.isNotEmpty()
+            try {
+                val type = object : TypeToken<List<PromptItem>>() {}.type
+                val list: List<PromptItem> = gson.fromJson(customPromptsJson, type) ?: emptyList()
+                list.isNotEmpty()
+            } catch (_: Exception) { false }
         } else false
 
         val hasCustomOrder = !PreferenceUtils.getPromptOrderJson(this).isNullOrEmpty()
 
         val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
         val hasDisabledPrompts = if (!disabledPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<Set<String>>() {}.type
-            val set: Set<String> = gson.fromJson(disabledPromptsJson, type) ?: emptySet()
-            set.isNotEmpty()
+            try {
+                val type = object : TypeToken<Set<String>>() {}.type
+                val set: Set<String> = gson.fromJson(disabledPromptsJson, type) ?: emptySet()
+                set.isNotEmpty()
+            } catch (_: Exception) { false }
         } else false
 
         val isModified = hasCustomPrompts || hasCustomOrder || hasDisabledPrompts
@@ -207,23 +211,6 @@ class ManagePromptsActivity : BaseActivity() {
         val order = items.map { it.id }
         PreferenceUtils.setPromptOrderJson(this, gson.toJson(order))
         updateMenuVisibility()
-    }
-
-    private fun deleteCustomPrompt(item: PromptItem) {
-        val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
-        if (!customPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<MutableList<PromptItem>>() {}.type
-            val customPrompts: MutableList<PromptItem> = gson.fromJson(customPromptsJson, type)
-            customPrompts.removeAll { it.id == item.id }
-            PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
-        }
-
-        val pos = allPrompts.indexOf(item)
-        if (pos != -1) {
-            allPrompts.removeAt(pos)
-            adapter.submitList(allPrompts.toList())
-            savePromptOrder(allPrompts)
-        }
     }
 
     private fun showAddDialog() {

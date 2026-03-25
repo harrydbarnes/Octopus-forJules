@@ -36,8 +36,10 @@
         android:textColor="?attr/colorOnSecondaryContainer"
         android:textAppearance="?attr/textAppearanceLabelSmall"
         android:background="@drawable/bg_badge_custom"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:visibility="gone"
         tools:visibility="visible" />
 

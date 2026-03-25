@@ -104,7 +104,7 @@ class MainActivity : BaseActivity() {
                     startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
                     finish()
                 } else {
-                    setupMainActivity(savedInstanceState)
+                    setupMainActivity()
                 }
             } finally {
                 isReady = true
@@ -112,7 +112,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun setupMainActivity(savedInstanceState: Bundle?) {
+    private fun setupMainActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)
 
