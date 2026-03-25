@@ -169,7 +169,15 @@ class ManagePromptsActivity : BaseActivity() {
             } catch (_: Exception) { false }
         } else false
 
-        val hasCustomOrder = !PreferenceUtils.getPromptOrderJson(this).isNullOrEmpty()
+        val hasCustomOrder = run {
+            val orderJson = PreferenceUtils.getPromptOrderJson(this)
+            if (orderJson.isNullOrEmpty()) false
+            else try {
+                val type = object : TypeToken<List<String>>() {}.type
+                val list: List<String> = gson.fromJson(orderJson, type) ?: emptyList()
+                list.isNotEmpty()
+            } catch (_: Exception) { false }
+        }
 
         val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
         val hasDisabledPrompts = if (!disabledPromptsJson.isNullOrEmpty()) {
@@ -257,11 +265,11 @@ class ManagePromptsActivity : BaseActivity() {
                         .setPositiveButton(R.string.action_delete_prompt) { _, _ ->
                             val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
                             val type = object : TypeToken<MutableList<PromptItem>>() {}.type
-                            val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
-                                gson.fromJson(customPromptsJson, type)
-                            } else {
-                                mutableListOf()
-                            }
+                            val customPrompts: MutableList<PromptItem> = try {
+                                if (!customPromptsJson.isNullOrEmpty()) {
+                                    gson.fromJson(customPromptsJson, type) ?: mutableListOf()
+                                } else mutableListOf()
+                            } catch (_: Exception) { mutableListOf() }
                             customPrompts.removeAll { it.id == itemToEdit.id }
                             PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
 
@@ -271,6 +279,20 @@ class ManagePromptsActivity : BaseActivity() {
                                 adapter.submitList(allPrompts.toList())
                                 savePromptOrder(allPrompts)
                             }
+
+                            // Also remove from disabled-prompts set so the deleted prompt
+                            // doesn't keep Reset All visible after deletion.
+                            val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
+                            if (!disabledPromptsJson.isNullOrEmpty()) {
+                                try {
+                                    val setType = object : TypeToken<MutableSet<String>>() {}.type
+                                    val disabled: MutableSet<String> = gson.fromJson(disabledPromptsJson, setType) ?: mutableSetOf()
+                                    if (disabled.remove(itemToEdit.id)) {
+                                        PreferenceUtils.setDisabledPromptsJson(this, gson.toJson(disabled))
+                                    }
+                                } catch (_: Exception) { /* ignore corrupted JSON */ }
+                            }
+
                             updateMenuVisibility()
                             dialog.dismiss()
                         }

@@ -648,6 +648,12 @@ class MainActivity : BaseActivity() {
                 allSessions = response.sessions ?: emptyList()
                 nextPageToken = response.nextPageToken
 
+                // If the response is empty but we have cached sessions (e.g. on rotation where the
+                // fresh API call briefly returns nothing), keep showing cached data instead.
+                if (allSessions.isEmpty() && !forceRefresh && repository.hasCachedSessions()) {
+                    allSessions = repository.getCachedSessions()
+                }
+
                 if (allSessions.isEmpty()) {
                     binding.octopusErrorGame.visibility = View.GONE
                     binding.errorSignalMessage.visibility = View.GONE
