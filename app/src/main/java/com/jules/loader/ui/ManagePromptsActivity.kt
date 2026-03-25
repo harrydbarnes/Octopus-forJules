@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.view.View
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -17,6 +17,22 @@ import com.jules.loader.databinding.ActivityManagePromptsBinding
 import com.jules.loader.util.PreferenceUtils
 
 class ManagePromptsActivity : BaseActivity() {
+
+    companion object {
+        private val DEFAULT_PROMPT_ORDER = listOf(
+            "performance",
+            "design",
+            "security",
+            "bug_hunt",
+            "dependencies",
+            "readme",
+            "simplify",
+            "refactor",
+            "unit_tests",
+            "janitor",
+            "accessibility"
+        )
+    }
 
     private lateinit var binding: ActivityManagePromptsBinding
     private lateinit var adapter: ManagePromptAdapter
@@ -53,7 +69,6 @@ class ManagePromptsActivity : BaseActivity() {
                 saveDisabledPrompts()
             },
             onEditClick = { item -> showEditDialog(item) },
-            onDeleteClick = { item -> deleteCustomPrompt(item) },
             onOrderChanged = { newOrder -> savePromptOrder(newOrder) }
         )
 
@@ -114,20 +129,31 @@ class ManagePromptsActivity : BaseActivity() {
 
         val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
         val customPrompts: List<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<PromptItem>>() {}.type
-            gson.fromJson(customPromptsJson, type)
+            try {
+                val type = object : TypeToken<List<PromptItem>>() {}.type
+                gson.fromJson<List<PromptItem>>(customPromptsJson, type) ?: emptyList()
+            } catch (e: Exception) {
+                android.util.Log.w("ManagePrompts", "Corrupted custom_prompts JSON, ignoring", e)
+                emptyList()
+            }
         } else {
             emptyList()
         }
 
         val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
         if (!disabledPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<Set<String>>() {}.type
-            disabledPrompts.addAll(gson.fromJson(disabledPromptsJson, type))
+            try {
+                val type = object : TypeToken<Set<String>>() {}.type
+                val parsed: Set<String>? = gson.fromJson(disabledPromptsJson, type)
+                if (parsed != null) disabledPrompts.addAll(parsed)
+            } catch (e: Exception) {
+                android.util.Log.w("ManagePrompts", "Corrupted disabled_prompts JSON, ignoring", e)
+            }
         }
 
         val mergedPrompts = defaultPrompts.map { defaultItem ->
-            customPrompts.find { it.id == defaultItem.id } ?: defaultItem
+            val customVersion = customPrompts.find { it.id == defaultItem.id }
+            customVersion?.copy(originalTitle = defaultItem.title) ?: defaultItem.copy(originalTitle = defaultItem.title)
         }.toMutableList()
 
         // Add true custom prompts
@@ -136,10 +162,17 @@ class ManagePromptsActivity : BaseActivity() {
         val combined = mergedPrompts.toMutableList()
 
         val promptOrderJson = PreferenceUtils.getPromptOrderJson(this)
-        if (!promptOrderJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<String>>() {}.type
-            val savedOrder: List<String> = gson.fromJson(promptOrderJson, type)
+        val savedOrder: List<String> = if (!promptOrderJson.isNullOrEmpty()) {
+            try {
+                val type = object : TypeToken<List<String>>() {}.type
+                gson.fromJson<List<String>>(promptOrderJson, type) ?: emptyList()
+            } catch (e: Exception) {
+                android.util.Log.w("ManagePrompts", "Corrupted prompt_order JSON, ignoring", e)
+                emptyList()
+            }
+        } else emptyList()
 
+        if (savedOrder.isNotEmpty()) {
             val orderedPrompts = mutableListOf<PromptItem>()
             for (id in savedOrder) {
                 val item = combined.find { it.id == id }
@@ -160,16 +193,40 @@ class ManagePromptsActivity : BaseActivity() {
     }
 
     private fun updateMenuVisibility() {
-        val hasCustomPrompts = !PreferenceUtils.getCustomPromptsJson(this).isNullOrEmpty()
-        val hasCustomOrder = !PreferenceUtils.getPromptOrderJson(this).isNullOrEmpty()
-        val hasDisabledPrompts = !PreferenceUtils.getDisabledPromptsJson(this).isNullOrEmpty()
+        val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+        val hasCustomPrompts = if (!customPromptsJson.isNullOrEmpty()) {
+            try {
+                val type = object : TypeToken<List<PromptItem>>() {}.type
+                val list: List<PromptItem> = gson.fromJson(customPromptsJson, type) ?: emptyList()
+                list.isNotEmpty()
+            } catch (_: Exception) { false }
+        } else false
+
+        val hasCustomOrder = run {
+            val orderJson = PreferenceUtils.getPromptOrderJson(this)
+            if (orderJson.isNullOrEmpty()) false
+            else try {
+                val type = object : TypeToken<List<String>>() {}.type
+                val list: List<String> = gson.fromJson(orderJson, type) ?: emptyList()
+                list.isNotEmpty() && list != DEFAULT_PROMPT_ORDER
+            } catch (_: Exception) { false }
+        }
+
+        val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
+        val hasDisabledPrompts = if (!disabledPromptsJson.isNullOrEmpty()) {
+            try {
+                val type = object : TypeToken<Set<String>>() {}.type
+                val set: Set<String> = gson.fromJson(disabledPromptsJson, type) ?: emptySet()
+                set.isNotEmpty()
+            } catch (_: Exception) { false }
+        } else false
 
         val isModified = hasCustomPrompts || hasCustomOrder || hasDisabledPrompts
         binding.toolbar.menu.findItem(R.id.action_reset_all)?.isVisible = isModified
     }
 
     private fun showGlobalResetConfirmation() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_reset_all_prompts_title)
             .setMessage(R.string.dialog_reset_all_prompts_message)
             .setPositiveButton(R.string.menu_reset_all) { _, _ ->
@@ -197,23 +254,6 @@ class ManagePromptsActivity : BaseActivity() {
         updateMenuVisibility()
     }
 
-    private fun deleteCustomPrompt(item: PromptItem) {
-        val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
-        if (!customPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<MutableList<PromptItem>>() {}.type
-            val customPrompts: MutableList<PromptItem> = gson.fromJson(customPromptsJson, type)
-            customPrompts.removeAll { it.id == item.id }
-            PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
-        }
-
-        val pos = allPrompts.indexOf(item)
-        if (pos != -1) {
-            allPrompts.removeAt(pos)
-            adapter.submitList(allPrompts.toList())
-            savePromptOrder(allPrompts)
-        }
-    }
-
     private fun showAddDialog() {
         showDialog(null)
     }
@@ -234,6 +274,7 @@ class ManagePromptsActivity : BaseActivity() {
         val btnSave = dialogView.findViewById<Button>(R.id.btnSavePrompt)
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancelPrompt)
         val btnReset = dialogView.findViewById<Button>(R.id.btnResetPrompt)
+        val btnDelete = dialogView.findViewById<Button>(R.id.btnDeletePrompt)
 
         if (itemToEdit != null) {
             tvDialogTitle.text = getString(R.string.dialog_edit_custom_prompt_title)
@@ -248,6 +289,52 @@ class ManagePromptsActivity : BaseActivity() {
 
             if (itemToEdit.isCustom) {
                 etBody.setText(itemToEdit.body)
+
+                btnDelete.visibility = View.VISIBLE
+                btnDelete.setOnClickListener {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle(R.string.dialog_delete_custom_prompt_title)
+                        .setMessage(R.string.dialog_delete_custom_prompt_message)
+                        .setPositiveButton(R.string.action_delete_prompt) { _, _ ->
+                            val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
+                            val type = object : TypeToken<MutableList<PromptItem>>() {}.type
+                            val customPrompts: MutableList<PromptItem> = try {
+                                if (!customPromptsJson.isNullOrEmpty()) {
+                                    gson.fromJson(customPromptsJson, type) ?: mutableListOf()
+                                } else mutableListOf()
+                            } catch (_: Exception) { mutableListOf() }
+                            customPrompts.removeAll { it.id == itemToEdit.id }
+                            PreferenceUtils.setCustomPromptsJson(this, gson.toJson(customPrompts))
+
+                            val pos = allPrompts.indexOfFirst { it.id == itemToEdit.id }
+                            if (pos != -1) {
+                                allPrompts.removeAt(pos)
+                                adapter.submitList(allPrompts.toList())
+                                savePromptOrder(allPrompts)
+                            }
+
+                            // Also remove from disabled-prompts set so the deleted prompt
+                            // doesn't keep Reset All visible after deletion.
+                            val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
+                            if (!disabledPromptsJson.isNullOrEmpty()) {
+                                try {
+                                    val setType = object : TypeToken<MutableSet<String>>() {}.type
+                                    val disabled: MutableSet<String> = gson.fromJson(disabledPromptsJson, setType) ?: mutableSetOf()
+                                    if (disabled.remove(itemToEdit.id)) {
+                                        PreferenceUtils.setDisabledPromptsJson(this, gson.toJson(disabled))
+                                    }
+                                } catch (_: Exception) { /* ignore corrupted JSON */ }
+                            }
+                            // Keep in-memory disabledPrompts set in sync so it doesn't
+                            // re-persist a stale disabled ID for this deleted prompt.
+                            disabledPrompts.remove(itemToEdit.id)
+
+                            updateMenuVisibility()
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .show()
+                }
             } else {
                 // For default prompts, body might be a filename or customized body.
                 // We'll just show the current body if it doesn't end in .md, or load it from assets if it does.
@@ -265,7 +352,7 @@ class ManagePromptsActivity : BaseActivity() {
 
                 btnReset.visibility = View.VISIBLE
                 btnReset.setOnClickListener {
-                    AlertDialog.Builder(this)
+                    MaterialAlertDialogBuilder(this)
                         .setTitle(R.string.dialog_reset_prompt_title)
                         .setMessage(R.string.dialog_reset_prompt_message)
                         .setPositiveButton(R.string.action_reset_prompt) { _, _ ->
@@ -288,8 +375,10 @@ class ManagePromptsActivity : BaseActivity() {
 
                                 val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
                                 if (allIdx != -1) {
-                                    allPrompts[allIdx] = allPrompts[allIdx].copy(title = itemToEdit.title, body = originalFileName)
-                                    adapter.notifyItemChanged(allIdx)
+                                    val originalTitle = itemToEdit.originalTitle ?: itemToEdit.title
+                                    allPrompts[allIdx] = allPrompts[allIdx].copy(title = originalTitle, body = originalFileName)
+                                    adapter.submitList(allPrompts.toList())
+                                    updateMenuVisibility()
                                 }
                             } catch (e: Exception) {
                                 android.util.Log.e("ManagePrompts", "Error resetting prompt ${itemToEdit.id}", e)

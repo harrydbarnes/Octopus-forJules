@@ -76,9 +76,6 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        private const val KEY_SESSIONS = "key_sessions"
-        private const val KEY_NEXT_PAGE_TOKEN = "key_next_page_token"
-        private const val KEY_STOP_TIME = "key_stop_time"
         private const val REFRESH_TIMEOUT_MS = 20000L
         /** Intent extra: when `true`, immediately shows the no-signal error/game overlay. */
         const val EXTRA_SIMULATE_NO_SIGNAL = "simulate_no_signal"
@@ -107,7 +104,7 @@ class MainActivity : BaseActivity() {
                     startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
                     finish()
                 } else {
-                    setupMainActivity(savedInstanceState)
+                    setupMainActivity()
                 }
             } finally {
                 isReady = true
@@ -115,7 +112,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun setupMainActivity(savedInstanceState: Bundle?) {
+    private fun setupMainActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)
 
@@ -240,23 +237,7 @@ class MainActivity : BaseActivity() {
         setupSearch()
         setupFilters()
 
-        val restoredSessions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            savedInstanceState?.getParcelableArrayList(KEY_SESSIONS, Session::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            savedInstanceState?.getParcelableArrayList(KEY_SESSIONS)
-        }
-        val restoredNextPageToken = savedInstanceState?.getString(KEY_NEXT_PAGE_TOKEN)
-
-        if (!restoredSessions.isNullOrEmpty()) {
-            allSessions = restoredSessions
-            nextPageToken = restoredNextPageToken
-            hideErrorOverlay()
-            binding.sessionsRecyclerView.visibility = View.VISIBLE
-            applyFilters()
-        } else {
-            loadSessions()
-        }
+        loadSessions()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -270,7 +251,6 @@ class MainActivity : BaseActivity() {
         if (::adapter.isInitialized) {
             adapter.isShortenRepoNamesEnabled = shortenRepoNames
             adapter.isShortenDatesEnabled = PreferenceUtils.isShortenDatesEnabled(this)
-            adapter.isDateFormatMMDD = PreferenceUtils.isDateFormatMMDD(this)
             adapter.notifyDataSetChanged()
         }
 
@@ -320,10 +300,8 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        if (allSessions.isNotEmpty()) {
-            outState.putParcelableArrayList(KEY_SESSIONS, ArrayList(allSessions))
-            outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
-        }
+        // Avoid saving session state to prevent TransactionTooLargeException.
+        // Sessions are reloaded from the repository on restore.
         super.onSaveInstanceState(outState)
     }
 
@@ -444,7 +422,7 @@ class MainActivity : BaseActivity() {
         popup.show()
     }
 
-    private fun applyFilters() {
+    private fun applyFilters(onCommit: (() -> Unit)? = null) {
         var filtered = allSessions
 
         // 1. Search Filter
@@ -495,7 +473,11 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        adapter.submitList(filtered)
+        if (onCommit != null) {
+            adapter.submitList(filtered, onCommit)
+        } else {
+            adapter.submitList(filtered)
+        }
         updateFilterIcon()
     }
 
@@ -650,6 +632,12 @@ class MainActivity : BaseActivity() {
             startSkeletonShimmer()
             binding.errorContainer.visibility = View.GONE
             binding.sessionsRecyclerView.visibility = View.GONE
+        } else if (!forceRefresh && repository.hasCachedSessions()) {
+            // Restore rotation: immediately show cached sessions so the list is
+            // never blank while the background refresh is in flight.
+            allSessions = repository.getCachedSessions()
+            binding.sessionsRecyclerView.visibility = View.VISIBLE
+            applyFilters()
         }
 
         // Show reload spinner inside the game overlay if it's already on screen
@@ -663,6 +651,12 @@ class MainActivity : BaseActivity() {
                 val response = repository.getSessions(pageToken = null, forceRefresh = forceRefresh)
                 allSessions = response.sessions ?: emptyList()
                 nextPageToken = response.nextPageToken
+
+                // If the response is empty but we have cached sessions (e.g. on rotation where the
+                // fresh API call briefly returns nothing), keep showing cached data instead.
+                if (allSessions.isEmpty() && !forceRefresh && repository.hasCachedSessions()) {
+                    allSessions = repository.getCachedSessions()
+                }
 
                 if (allSessions.isEmpty()) {
                     binding.octopusErrorGame.visibility = View.GONE
@@ -837,12 +831,14 @@ class MainActivity : BaseActivity() {
                 nextPageToken = response.nextPageToken
 
                 allSessions = allSessions + newSessions
-                applyFilters()
+                // Hide the loading footer only after the new items are committed to the
+                // adapter, so the footer stays visible until the rows actually appear.
+                applyFilters { adapter.setLoading(false) }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error loading more sessions", e)
+                adapter.setLoading(false)
             } finally {
                 isLoadingMore = false
-                adapter.setLoading(false)
             }
         }
     }

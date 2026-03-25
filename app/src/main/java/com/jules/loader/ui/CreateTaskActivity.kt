@@ -467,7 +467,7 @@ class CreateTaskActivity : BaseActivity() {
             allPrompts.addAll(orderedPrompts)
         }
 
-        allPrompts.add(PromptItem("custom_add", "➕ Custom", false, ""))
+        allPrompts.add(PromptItem("custom_add", getString(R.string.prompt_custom_title), false, ""))
 
         promptAdapter.submitList(allPrompts)
     }
@@ -491,7 +491,7 @@ class CreateTaskActivity : BaseActivity() {
             val body = etBody.text.toString().trim()
 
             if (title.isEmpty() || body.isEmpty()) {
-                Toast.makeText(this, "Title and body are required", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_prompt_fields_required, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -544,7 +544,7 @@ class CreateTaskActivity : BaseActivity() {
         disabledPrompts.add(item.id)
         PreferenceUtils.setDisabledPromptsJson(this, gson.toJson(disabledPrompts))
 
-        Toast.makeText(this, "Prompt hidden. You can re-enable it in Settings.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_prompt_hidden), Toast.LENGTH_SHORT).show()
 
         // Remove from current adapter list without reloading everything, or reload
         loadPrompts()

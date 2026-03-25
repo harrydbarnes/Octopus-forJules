@@ -3,7 +3,6 @@ package com.jules.loader.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -26,7 +25,6 @@ class ManagePromptAdapter(
     private val disabledIds: Set<String>,
     private val onCheckedChange: (PromptItem, Boolean) -> Unit,
     private val onEditClick: (PromptItem) -> Unit,
-    private val onDeleteClick: (PromptItem) -> Unit,
     private val onOrderChanged: (List<PromptItem>) -> Unit
 ) : ListAdapter<PromptItem, ManagePromptAdapter.ViewHolder>(ManagePromptDiffCallback()) {
 
@@ -57,8 +55,7 @@ class ManagePromptAdapter(
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvTitle: TextView = itemView.findViewById(R.id.tvPromptTitle)
         private val switchPrompt: MaterialSwitch = itemView.findViewById(R.id.switchPrompt)
-        private val btnEdit: ImageView = itemView.findViewById(R.id.btnEditPrompt)
-        private val btnDelete: ImageView = itemView.findViewById(R.id.btnDeletePrompt)
+        private val tvCustomBadge: TextView = itemView.findViewById(R.id.tvCustomBadge)
 
         fun bind(item: PromptItem) {
             tvTitle.text = item.title
@@ -70,16 +67,7 @@ class ManagePromptAdapter(
                 onCheckedChange(item, isChecked)
             }
 
-            if (item.isCustom) {
-                btnEdit.visibility = View.VISIBLE
-                btnDelete.visibility = View.VISIBLE
-
-                btnEdit.setOnClickListener { onEditClick(item) }
-                btnDelete.setOnClickListener { onDeleteClick(item) }
-            } else {
-                btnEdit.visibility = View.GONE
-                btnDelete.visibility = View.GONE
-            }
+            tvCustomBadge.visibility = if (item.isCustom) View.VISIBLE else View.GONE
 
             itemView.setOnClickListener {
                 onEditClick(item)
