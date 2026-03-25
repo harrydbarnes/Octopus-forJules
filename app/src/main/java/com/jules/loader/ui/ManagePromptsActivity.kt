@@ -18,6 +18,22 @@ import com.jules.loader.util.PreferenceUtils
 
 class ManagePromptsActivity : BaseActivity() {
 
+    companion object {
+        private val DEFAULT_PROMPT_ORDER = listOf(
+            "performance",
+            "design",
+            "security",
+            "bug_hunt",
+            "dependencies",
+            "readme",
+            "simplify",
+            "refactor",
+            "unit_tests",
+            "janitor",
+            "accessibility"
+        )
+    }
+
     private lateinit var binding: ActivityManagePromptsBinding
     private lateinit var adapter: ManagePromptAdapter
     private val gson = Gson()
@@ -192,7 +208,7 @@ class ManagePromptsActivity : BaseActivity() {
             else try {
                 val type = object : TypeToken<List<String>>() {}.type
                 val list: List<String> = gson.fromJson(orderJson, type) ?: emptyList()
-                list.isNotEmpty()
+                list.isNotEmpty() && list != DEFAULT_PROMPT_ORDER
             } catch (_: Exception) { false }
         }
 
