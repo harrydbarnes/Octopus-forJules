@@ -116,7 +116,10 @@ class ManagePromptsActivity : BaseActivity() {
             try {
                 val type = object : TypeToken<List<PromptItem>>() {}.type
                 gson.fromJson<List<PromptItem>>(customPromptsJson, type) ?: emptyList()
-            } catch (_: Exception) { emptyList() }
+            } catch (e: Exception) {
+                android.util.Log.w("ManagePrompts", "Corrupted custom_prompts JSON, ignoring", e)
+                emptyList()
+            }
         } else {
             emptyList()
         }
@@ -127,7 +130,9 @@ class ManagePromptsActivity : BaseActivity() {
                 val type = object : TypeToken<Set<String>>() {}.type
                 val parsed: Set<String>? = gson.fromJson(disabledPromptsJson, type)
                 if (parsed != null) disabledPrompts.addAll(parsed)
-            } catch (_: Exception) { /* ignore corrupted JSON */ }
+            } catch (e: Exception) {
+                android.util.Log.w("ManagePrompts", "Corrupted disabled_prompts JSON, ignoring", e)
+            }
         }
 
         val mergedPrompts = defaultPrompts.map { defaultItem ->
@@ -145,7 +150,10 @@ class ManagePromptsActivity : BaseActivity() {
             try {
                 val type = object : TypeToken<List<String>>() {}.type
                 gson.fromJson<List<String>>(promptOrderJson, type) ?: emptyList()
-            } catch (_: Exception) { emptyList() }
+            } catch (e: Exception) {
+                android.util.Log.w("ManagePrompts", "Corrupted prompt_order JSON, ignoring", e)
+                emptyList()
+            }
         } else emptyList()
 
         if (savedOrder.isNotEmpty()) {
