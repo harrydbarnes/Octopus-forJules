@@ -409,7 +409,14 @@ class ManagePromptsActivity : BaseActivity() {
             val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
             val type = object : TypeToken<MutableList<PromptItem>>() {}.type
             val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
-                gson.fromJson(customPromptsJson, type)
+                try {
+                    gson.fromJson<MutableList<PromptItem>>(customPromptsJson, type) ?: mutableListOf()
+                } catch (e: Exception) {
+                    // If the stored JSON is corrupted, clear/repair it and fall back to an empty list.
+                    // This mirrors the defensive handling used in loadData().
+                    PreferenceUtils.setCustomPromptsJson(this, gson.toJson(mutableListOf<PromptItem>()))
+                    mutableListOf()
+                }
             } else {
                 mutableListOf()
             }
