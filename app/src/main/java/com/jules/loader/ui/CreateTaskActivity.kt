@@ -422,8 +422,13 @@ class CreateTaskActivity : BaseActivity() {
         // Load custom prompts
         val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
         val customPrompts: List<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<PromptItem>>() {}.type
-            gson.fromJson(customPromptsJson, type)
+            try {
+                val type = object : TypeToken<List<PromptItem>>() {}.type
+                gson.fromJson(customPromptsJson, type) ?: emptyList()
+            } catch (e: Exception) {
+                Log.w(TAG, "Corrupted custom_prompts JSON, ignoring", e)
+                emptyList()
+            }
         } else {
             emptyList()
         }
@@ -431,8 +436,13 @@ class CreateTaskActivity : BaseActivity() {
         // Load disabled prompts
         val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
         val disabledPrompts: Set<String> = if (!disabledPromptsJson.isNullOrEmpty()) {
-            val type = object : TypeToken<Set<String>>() {}.type
-            gson.fromJson(disabledPromptsJson, type)
+            try {
+                val type = object : TypeToken<Set<String>>() {}.type
+                gson.fromJson(disabledPromptsJson, type) ?: emptySet()
+            } catch (e: Exception) {
+                Log.w(TAG, "Corrupted disabled_prompts JSON, ignoring", e)
+                emptySet()
+            }
         } else {
             emptySet()
         }
@@ -450,8 +460,13 @@ class CreateTaskActivity : BaseActivity() {
         // Apply saved order
         val promptOrderJson = PreferenceUtils.getPromptOrderJson(this)
         if (!promptOrderJson.isNullOrEmpty()) {
-            val type = object : TypeToken<List<String>>() {}.type
-            val savedOrder: List<String> = gson.fromJson(promptOrderJson, type)
+            val savedOrder: List<String> = try {
+                val type = object : TypeToken<List<String>>() {}.type
+                gson.fromJson(promptOrderJson, type) ?: emptyList()
+            } catch (e: Exception) {
+                Log.w(TAG, "Corrupted prompt_order JSON, ignoring", e)
+                emptyList()
+            }
 
             val orderedPrompts = mutableListOf<PromptItem>()
             for (id in savedOrder) {
