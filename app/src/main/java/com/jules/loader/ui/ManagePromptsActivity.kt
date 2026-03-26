@@ -359,7 +359,12 @@ class ManagePromptsActivity : BaseActivity() {
                             val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
                             val type = object : TypeToken<MutableList<PromptItem>>() {}.type
                             val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
-                                gson.fromJson(customPromptsJson, type)
+                                try {
+                                    gson.fromJson(customPromptsJson, type)
+                                } catch (e: Exception) {
+                                    android.util.Log.e("ManagePrompts", "Error parsing custom prompts JSON during reset", e)
+                                    mutableListOf()
+                                }
                             } else {
                                 mutableListOf()
                             }
