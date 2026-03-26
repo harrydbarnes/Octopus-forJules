@@ -348,9 +348,6 @@ class CreateTaskActivity : BaseActivity() {
             onCustomAddClick = {
                 showAddCustomPromptDialog()
             },
-            onItemsReordered = { newItems ->
-                savePromptOrder(newItems)
-            },
             onItemDisabled = { item ->
                 disablePrompt(item)
             },
@@ -392,6 +389,11 @@ class CreateTaskActivity : BaseActivity() {
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                savePromptOrder(promptAdapter.getItems())
+            }
 
             override fun isLongPressDragEnabled(): Boolean {
                 return false

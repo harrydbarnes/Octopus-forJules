@@ -29,7 +29,6 @@ class PromptDiffCallback : DiffUtil.ItemCallback<PromptItem>() {
 open class PromptAdapter(
     private val onItemClick: (PromptItem) -> Unit,
     private val onCustomAddClick: () -> Unit,
-    private val onItemsReordered: (List<PromptItem>) -> Unit,
     private val onItemDisabled: (PromptItem) -> Unit,
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
 ) : ListAdapter<PromptItem, PromptAdapter.PromptViewHolder>(PromptDiffCallback()) {
@@ -70,7 +69,6 @@ open class PromptAdapter(
         // but avoid DiffUtil tearing down the views. submitList handles this well enough, but to maintain the dragging
         // state seamlessly, notifyItemMoved is better. But with ListAdapter, we must submit the new list.
         submitList(currentListMutable)
-        onItemsReordered(currentListMutable)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PromptViewHolder {
