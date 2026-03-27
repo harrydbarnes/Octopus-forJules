@@ -533,7 +533,12 @@ class CreateTaskActivity : BaseActivity() {
         val customPromptsJson = PreferenceUtils.getCustomPromptsJson(this)
         val customPrompts: MutableList<PromptItem> = if (!customPromptsJson.isNullOrEmpty()) {
             val type = object : TypeToken<MutableList<PromptItem>>() {}.type
-            gson.fromJson(customPromptsJson, type)
+            try {
+                gson.fromJson(customPromptsJson, type) ?: mutableListOf()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse custom prompts JSON, resetting.", e)
+                mutableListOf()
+            }
         } else {
             mutableListOf()
         }
