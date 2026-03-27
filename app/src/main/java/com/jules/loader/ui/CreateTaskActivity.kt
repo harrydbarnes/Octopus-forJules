@@ -690,7 +690,6 @@ class CreateTaskActivity : BaseActivity() {
 
         btnCancel.setOnClickListener {
             tvStatus.removeCallbacks(ellipsisRunnable)
-            speechRecognizer.stopListening()
             dialog.dismiss()
         }
 
