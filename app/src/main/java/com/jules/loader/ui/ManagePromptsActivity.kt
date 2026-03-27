@@ -376,12 +376,20 @@ class ManagePromptsActivity : BaseActivity() {
                             }
 
                             try {
-                                val originalFileName = itemToEdit.originalBody ?: "${itemToEdit.id}.md"
-
                                 val allIdx = allPrompts.indexOfFirst { it.id == itemToEdit.id }
                                 if (allIdx != -1) {
                                     val originalTitle = itemToEdit.originalTitle ?: itemToEdit.title
-                                    allPrompts[allIdx] = allPrompts[allIdx].copy(title = originalTitle, body = originalFileName)
+                                    val updatedPrompt = if (itemToEdit.originalBody != null) {
+                                        allPrompts[allIdx].copy(
+                                            title = originalTitle,
+                                            body = itemToEdit.originalBody
+                                        )
+                                    } else {
+                                        // If originalBody is not available, avoid falling back to "${id}.md"
+                                        // and only reset the title, leaving the body unchanged.
+                                        allPrompts[allIdx].copy(title = originalTitle)
+                                    }
+                                    allPrompts[allIdx] = updatedPrompt
                                     adapter.submitList(allPrompts.toList())
                                     updateMenuVisibility()
                                 }
