@@ -551,11 +551,17 @@ class CreateTaskActivity : BaseActivity() {
     private fun disablePrompt(item: PromptItem) {
         val gson = Gson()
         val disabledPromptsJson = PreferenceUtils.getDisabledPromptsJson(this)
-        val disabledPrompts: MutableSet<String> = if (!disabledPromptsJson.isNullOrEmpty()) {
+        var disabledPrompts: MutableSet<String> = mutableSetOf()
+
+        if (!disabledPromptsJson.isNullOrEmpty()) {
             val type = object : TypeToken<MutableSet<String>>() {}.type
-            gson.fromJson(disabledPromptsJson, type)
-        } else {
-            mutableSetOf()
+            try {
+                disabledPrompts = gson.fromJson<MutableSet<String>>(disabledPromptsJson, type) ?: mutableSetOf()
+            } catch (e: Exception) {
+                Log.e("CreateTaskActivity", "Failed to parse disabled prompts JSON, resetting preference.", e)
+                // Optionally repair the stored JSON to a clean empty set
+                PreferenceUtils.setDisabledPromptsJson(this, gson.toJson(disabledPrompts))
+            }
         }
 
         disabledPrompts.add(item.id)
