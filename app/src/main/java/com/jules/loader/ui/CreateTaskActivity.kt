@@ -699,12 +699,6 @@ class CreateTaskActivity : BaseActivity() {
             dialog.dismiss()
         }
 
-        dialog.setOnDismissListener {
-            tvStatus.removeCallbacks(ellipsisRunnable)
-            speechRecognizer.stopListening()
-            isListening = false
-        }
-
         var pendingSettleRunnable: Runnable? = null
 
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
@@ -775,6 +769,8 @@ class CreateTaskActivity : BaseActivity() {
             pendingSettleRunnable?.let { wavyIndicator.removeCallbacks(it) }
             pendingSettleRunnable = null
             tvStatus.removeCallbacks(ellipsisRunnable)
+            speechRecognizer.stopListening()
+            isListening = false
         }
 
         speechRecognizer.startListening(speechRecognizerIntent)
