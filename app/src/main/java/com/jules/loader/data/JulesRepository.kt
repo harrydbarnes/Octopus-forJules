@@ -111,9 +111,13 @@ class JulesRepository private constructor(private val context: Context) {
     }
 
     fun clearApiKey() {
-        if (!prefsFile.exists()) return
-        prefs.edit().remove(KEY_API_KEY).apply()
+        // Always clear in-memory caches, even if the prefs file doesn't exist.
         cachedSessions = null
+
+        if (!prefsFile.exists()) {
+            return
+        }
+        prefs.edit().remove(KEY_API_KEY).apply()
     }
 
     fun getApiKey(): String? {
