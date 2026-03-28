@@ -153,7 +153,13 @@ class ManagePromptsActivity : BaseActivity() {
 
         val mergedPrompts = defaultPrompts.map { defaultItem ->
             val customVersion = customPrompts.find { it.id == defaultItem.id }
-            customVersion?.copy(originalTitle = defaultItem.title) ?: defaultItem.copy(originalTitle = defaultItem.title)
+            customVersion?.copy(
+                originalTitle = defaultItem.title,
+                originalBody = defaultItem.originalBody
+            ) ?: defaultItem.copy(
+                originalTitle = defaultItem.title,
+                originalBody = defaultItem.originalBody
+            )
         }.toMutableList()
 
         // Add true custom prompts
