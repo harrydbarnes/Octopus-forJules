@@ -185,6 +185,7 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:padding="16dp"
+                android:saveEnabled="false"
                 android:layoutAnimation="@anim/layout_animation_fall_down"
                 tools:listitem="@layout/item_session" />
 
@@ -212,6 +213,8 @@
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:paddingTop="34dp"
+                android:clickable="true"
+                android:focusable="true"
                 android:visibility="gone">
 
                 <!-- Friendly signal-loss message (hidden for "no sessions" case) -->

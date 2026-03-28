@@ -175,18 +175,15 @@ class SettingsActivity : BaseActivity() {
             PreferenceUtils.setPromptGalleryEnabled(this, isChecked)
         }
 
+        binding.btnManagePrompts.setOnClickListener {
+            startActivity(Intent(this, ManagePromptsActivity::class.java))
+        }
+
         val shortenDates = PreferenceUtils.isShortenDatesEnabled(this)
         binding.switchShortenDates.isChecked = shortenDates
-        binding.switchDateFormatMmdd.isEnabled = shortenDates
-        binding.switchDateFormatMmdd.isChecked = PreferenceUtils.isDateFormatMMDD(this)
 
         binding.switchShortenDates.setOnCheckedChangeListener { _, isChecked ->
             PreferenceUtils.setShortenDatesEnabled(this, isChecked)
-            binding.switchDateFormatMmdd.isEnabled = isChecked
-        }
-
-        binding.switchDateFormatMmdd.setOnCheckedChangeListener { _, isChecked ->
-            PreferenceUtils.setDateFormatMMDD(this, isChecked)
         }
     }
 

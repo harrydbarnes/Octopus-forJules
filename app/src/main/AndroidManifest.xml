@@ -60,6 +60,12 @@
             android:label="@string/title_task_detail"
             android:theme="@style/Theme.Octopus" />
 
+        <activity
+            android:name=".ui.ManagePromptsActivity"
+            android:label="@string/title_manage_prompts"
+            android:theme="@style/Theme.Octopus"
+            android:parentActivityName=".ui.SettingsActivity" />
+
     </application>
 
 </manifest>
