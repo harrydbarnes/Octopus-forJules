@@ -10,10 +10,10 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
+import com.google.android.material.color.MaterialColors
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -143,22 +143,23 @@ class OctopusGameView @JvmOverloads constructor(
 
             if (gameRunning && !gameOver) {
                 updateGame(dt)
-            }
-
-            invalidate()
-
-            if (choreographerRunning) {
-                Choreographer.getInstance().postFrameCallback(this)
+                invalidate()
+                if (choreographerRunning) {
+                    Choreographer.getInstance().postFrameCallback(this)
+                }
+            } else {
+                choreographerRunning = false
+                lastFrameTimeNanos = 0L
             }
         }
     }
 
     init {
-        val tv = TypedValue()
-        context.theme.resolveAttribute(
-            com.google.android.material.R.attr.colorPrimary, tv, true
+        primaryColor = MaterialColors.getColor(
+            this,
+            com.google.android.material.R.attr.colorPrimary,
+            Color.rgb(98, 0, 238)
         )
-        primaryColor = tv.data
 
         octopusPaint.color = primaryColor
         octopusPaint.style = Paint.Style.FILL

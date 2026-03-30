@@ -2,12 +2,13 @@ package com.jules.loader.ui.widget
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.Choreographer
 import android.view.View
+import com.google.android.material.color.MaterialColors
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sin
@@ -113,11 +114,11 @@ class WavyVoiceIndicatorView @JvmOverloads constructor(
     }
 
     init {
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(
-            com.google.android.material.R.attr.colorPrimary, typedValue, true
+        paint.color = MaterialColors.getColor(
+            this,
+            com.google.android.material.R.attr.colorPrimary,
+            Color.rgb(98, 0, 238)
         )
-        paint.color = typedValue.data
     }
 
     override fun onAttachedToWindow() {
