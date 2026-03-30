@@ -666,7 +666,7 @@ class MainActivity : BaseActivity() {
                     // Use theme's on-surface-variant colour so text is readable on the plain background
                     binding.errorText.setTextColor(
                         com.google.android.material.color.MaterialColors.getColor(
-                            this,
+                            binding.errorText,
                             com.google.android.material.R.attr.colorOnSurfaceVariant,
                             android.graphics.Color.GRAY
                         )
