@@ -4,13 +4,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".JulesApplication"
         android:allowBackup="true"
-        android:icon="@drawable/ic_octopus"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/ic_octopus"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Octopus">
 
@@ -58,6 +59,12 @@
             android:name=".ui.TaskDetailActivity"
             android:label="@string/title_task_detail"
             android:theme="@style/Theme.Octopus" />
+
+        <activity
+            android:name=".ui.ManagePromptsActivity"
+            android:label="@string/title_manage_prompts"
+            android:theme="@style/Theme.Octopus"
+            android:parentActivityName=".ui.SettingsActivity" />
 
     </application>
 

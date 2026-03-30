@@ -66,21 +66,30 @@ class JulesRepository private constructor(private val context: Context) {
         }
     }
 
-    private val client = OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply { level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE })
-        .build()
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply { level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE })
+            .build()
+    }
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://jules.googleapis.com/")
-        .client(client)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private val retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://jules.googleapis.com/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
-    private val service = retrofit.create(JulesService::class.java)
+    private val service by lazy {
+        retrofit.create(JulesService::class.java)
+    }
 
     private var cachedSessions: List<Session>? = null
     private var cachedSources: ListSourcesResponse? = null
     private var lastSourcesFetchTime: Long = 0
+
+    private val prefsFile: File
+        get() = File(context.filesDir.parent, "shared_prefs/$PREFS_FILE_NAME.xml")
 
     companion object {
         private const val PREFS_FILE_NAME = "jules_prefs"
@@ -102,11 +111,21 @@ class JulesRepository private constructor(private val context: Context) {
     }
 
     fun clearApiKey() {
-        prefs.edit().remove(KEY_API_KEY).apply()
+        // Always clear in-memory caches, even if the prefs file doesn't exist.
         cachedSessions = null
+
+        if (!prefsFile.exists()) {
+            return
+        }
+        prefs.edit().remove(KEY_API_KEY).apply()
     }
 
     fun getApiKey(): String? {
+        // Fast-path: If the prefs file doesn't exist, we know there's no API key.
+        // This avoids triggering the 5-second EncryptedSharedPreferences creation on the very first launch.
+        if (!prefsFile.exists()) {
+            return null
+        }
         return prefs.getString(KEY_API_KEY, null)
     }
 
@@ -115,6 +134,8 @@ class JulesRepository private constructor(private val context: Context) {
     }
 
     fun hasCachedSessions(): Boolean = cachedSessions != null
+
+    fun getCachedSessions(): List<Session> = cachedSessions ?: emptyList()
 
     suspend fun getSessions(pageToken: String? = null, forceRefresh: Boolean = false): ListSessionsResponse {
         // If requesting the first page without force refresh and we have cache, return it?

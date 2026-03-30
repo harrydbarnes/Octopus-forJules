@@ -24,7 +24,6 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
 
     var isShortenRepoNamesEnabled: Boolean = true
     var isShortenDatesEnabled: Boolean = true
-    var isDateFormatMMDD: Boolean = false
     private var isLoadingFooterVisible = false
 
     companion object {
@@ -67,7 +66,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is SessionViewHolder) {
-            holder.bind(getItem(position), isShortenRepoNamesEnabled, isShortenDatesEnabled, isDateFormatMMDD)
+            holder.bind(getItem(position), isShortenRepoNamesEnabled, isShortenDatesEnabled)
         }
     }
 
@@ -83,7 +82,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
         private val badgeScrollView: HorizontalScrollView = itemView.findViewById(R.id.badgeScrollView)
         private var badgeScrollAnimator: ValueAnimator? = null
 
-        fun bind(session: Session, shortenRepoNames: Boolean, shortenDates: Boolean = true, useMmDd: Boolean = false) {
+        fun bind(session: Session, shortenRepoNames: Boolean, shortenDates: Boolean = true) {
             val context = itemView.context
             title.text = session.title ?: context.getString(R.string.untitled_session)
             prompt.text = session.prompt ?: context.getString(R.string.no_prompt)
@@ -121,7 +120,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
 
             // Set date
             val formattedDate = if (shortenDates) {
-                DateUtils.formatDateShort(session.createTime, useMmDd)
+                DateUtils.formatDateShort(session.createTime)
             } else {
                 DateUtils.formatDate(session.createTime)
             }
@@ -169,7 +168,12 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
                     putExtra(TaskDetailActivity.EXTRA_SESSION_BRANCH, session.sourceContext?.githubRepoContext?.startingBranch)
                 }
 
-                val activity = context as? Activity
+                var currentContext = context
+                while (currentContext is android.content.ContextWrapper && currentContext !is Activity) {
+                    currentContext = currentContext.baseContext
+                }
+
+                val activity = currentContext as? Activity
                 if (activity != null) {
                     val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                         activity,
@@ -178,6 +182,7 @@ class SessionAdapter : ListAdapter<Session, RecyclerView.ViewHolder>(SessionDiff
                     )
                     context.startActivity(intent, options.toBundle())
                 } else {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 }
             }

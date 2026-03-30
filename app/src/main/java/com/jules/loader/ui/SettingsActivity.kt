@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
@@ -36,6 +35,7 @@ class SettingsActivity : BaseActivity() {
         setupThemeSelection()
         setupDisplaySettings()
         setupApiKeySection()
+        setupDebugSection()
     }
 
     private fun setupApiKeySection() {
@@ -57,7 +57,7 @@ class SettingsActivity : BaseActivity() {
         val layout = layoutInflater.inflate(R.layout.dialog_edit_api_key, null)
         val inputLayout = layout.findViewById<TextInputLayout>(R.id.apiKeyInputLayout)
         val input = layout.findViewById<TextInputEditText>(R.id.apiKeyInput)
-        val progressBar = layout.findViewById<ProgressBar>(R.id.progressBar)
+        val progressBar = layout.findViewById<com.google.android.material.progressindicator.CircularProgressIndicator>(R.id.progressBar)
 
         val apiKey = repository.getApiKey()
         if (!apiKey.isNullOrEmpty()) {
@@ -175,23 +175,30 @@ class SettingsActivity : BaseActivity() {
             PreferenceUtils.setPromptGalleryEnabled(this, isChecked)
         }
 
+        binding.btnManagePrompts.setOnClickListener {
+            startActivity(Intent(this, ManagePromptsActivity::class.java))
+        }
+
+        val shortenDates = PreferenceUtils.isShortenDatesEnabled(this)
+        binding.switchShortenDates.isChecked = shortenDates
+
+        binding.switchShortenDates.setOnCheckedChangeListener { _, isChecked ->
+            PreferenceUtils.setShortenDatesEnabled(this, isChecked)
+        }
+    }
+
+    private fun setupDebugSection() {
         binding.switchRawLogs.isChecked = PreferenceUtils.isRawLogsEnabled(this)
         binding.switchRawLogs.setOnCheckedChangeListener { _, isChecked ->
             PreferenceUtils.setRawLogsEnabled(this, isChecked)
         }
 
-        val shortenDates = PreferenceUtils.isShortenDatesEnabled(this)
-        binding.switchShortenDates.isChecked = shortenDates
-        binding.switchDateFormatMmdd.isEnabled = shortenDates
-        binding.switchDateFormatMmdd.isChecked = PreferenceUtils.isDateFormatMMDD(this)
-
-        binding.switchShortenDates.setOnCheckedChangeListener { _, isChecked ->
-            PreferenceUtils.setShortenDatesEnabled(this, isChecked)
-            binding.switchDateFormatMmdd.isEnabled = isChecked
-        }
-
-        binding.switchDateFormatMmdd.setOnCheckedChangeListener { _, isChecked ->
-            PreferenceUtils.setDateFormatMMDD(this, isChecked)
+        binding.btnTestOctopusGame.setOnClickListener {
+            val intent = Intent(this, com.jules.loader.MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(com.jules.loader.MainActivity.EXTRA_SIMULATE_NO_SIGNAL, true)
+            }
+            startActivity(intent)
         }
     }
 

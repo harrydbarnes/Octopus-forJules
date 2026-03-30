@@ -185,6 +185,7 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:padding="16dp"
+                android:saveEnabled="false"
                 android:layoutAnimation="@anim/layout_animation_fall_down"
                 tools:listitem="@layout/item_session" />
 
@@ -202,13 +203,75 @@
                 <include layout="@layout/item_session_skeleton" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/errorText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                android:text="Failed to load sessions" />
+            <!-- Error / no-signal overlay: dims+blurs sessions behind it -->
+            <LinearLayout
+                android:id="@+id/errorContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="top|center_horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="34dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <!-- Friendly signal-loss message (hidden for "no sessions" case) -->
+                <TextView
+                    android:id="@+id/errorSignalMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/error_signal_message"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textColor="#FFFFFFFF"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone" />
+
+                <!-- Game canvas (hidden for "no sessions" case) -->
+                <com.jules.loader.ui.widget.OctopusGameView
+                    android:id="@+id/octopus_error_game"
+                    android:layout_width="match_parent"
+                    android:layout_height="260dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone" />
+
+                <!-- Fills remaining space below game.
+                     Tappable to restart when the game is over.
+                     Also hosts the background-reload progress indicator. -->
+                <FrameLayout
+                    android:id="@+id/gameBottomArea"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/reloadingIndicator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|center_horizontal"
+                        android:layout_marginTop="20dp"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                </FrameLayout>
+
+                <!-- Technical error detail pinned at very bottom of overlay -->
+                <TextView
+                    android:id="@+id/errorText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="@color/error_overlay_text_subdued"
+                    android:gravity="center" />
+
+            </LinearLayout>
 
         </FrameLayout>
 

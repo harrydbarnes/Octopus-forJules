@@ -32,6 +32,8 @@
     <string name="setting_shorten_dates">Shorten Dates</string>
     <string name="setting_date_format_mmdd">Use MM/DD Date Format</string>
     <string name="setting_theme">App Theme</string>
+    <string name="setting_debug">Debug</string>
+    <string name="debug_test_octopus_game">Test Octopus Game (Simulate No Signal)</string>
     <string name="theme_octopus">Octopus</string>
     <string name="theme_squid">Squid</string>
     <string name="theme_cuttlefish">Cuttlefish</string>
@@ -66,6 +68,13 @@
     <string name="onboarding_live_logs_desc">Watch your tasks progress in real-time.</string>
     <string name="onboarding_theme_title">Choose your theme</string>
     <string name="onboarding_theme_desc">Select a look that suits you.</string>
+
+    <string name="error_signal_message">No Internet Connectivity</string>
+    <string name="game_tap_to_restart">Tap here to restart</string>
+    <string name="game_tap_to_play">Tap to Play</string>
+    <string name="game_over">GAME OVER</string>
+    <string name="game_time_elapsed">Time: %1$s</string>
+    <string name="game_best_time">Best: %1$s</string>
 
     <!-- Main Activity -->
     <string name="sessions_title">jules sessions</string>
@@ -154,8 +163,55 @@
     <string name="prompt_simplify_title">✂️ Simplify</string>
     <string name="prompt_refactor_title">🏗️ Refactor</string>
     <string name="prompt_unit_tests_title">🧪 Unit Tests</string>
+    <string name="prompt_janitor_title">🧹 Janitor</string>
+    <string name="prompt_accessibility_title">♿ Accessibility</string>
     <string name="prompt_gallery_title">Prompt Gallery:</string>
     <string name="error_loading_prompt">Error loading prompt</string>
+
+    <!-- Manage Prompts Screen -->
+    <string name="title_manage_prompts">Manage Prompts</string>
+    <string name="fab_custom_prompt">Custom Prompt</string>
+    <string name="menu_reset_all">Reset All</string>
+    <string name="setting_manage_prompts">Manage Prompts</string>
+
+    <!-- Add/Edit Custom Prompt Dialog -->
+    <string name="dialog_add_custom_prompt_title">Add Custom Prompt</string>
+    <string name="dialog_edit_custom_prompt_title">Edit Prompt</string>
+    <string name="hint_prompt_title">Title</string>
+    <string name="hint_prompt_emoji">Emoji (Optional)</string>
+    <string name="hint_prompt_body">Prompt Body</string>
+    <string name="action_reset_prompt">Reset</string>
+    <string name="toast_prompt_fields_required">Title and body are required</string>
+    <string name="toast_prompt_hidden">Prompt hidden. You can re-enable it in Settings.</string>
+    <string name="prompt_custom_title">➕ Custom</string>
+    <string name="badge_custom">Custom</string>
+
+    <!-- Reset All Prompts Confirmation Dialog -->
+    <string name="dialog_reset_all_prompts_title">Reset All Prompts</string>
+    <string name="dialog_reset_all_prompts_message">Are you sure you want to reset all prompts? This will delete all custom prompts, restore default prompt bodies, reset the ordering, and re-enable any hidden prompts.</string>
+
+    <!-- Reset Single Prompt Confirmation Dialog -->
+    <string name="dialog_reset_prompt_title">Reset Prompt</string>
+    <string name="dialog_reset_prompt_message">Are you sure you want to reset this prompt to its default?</string>
+
+    <!-- Delete Custom Prompt Confirmation Dialog -->
+    <string name="dialog_delete_custom_prompt_title">Delete Prompt</string>
+    <string name="dialog_delete_custom_prompt_message">Are you sure you want to delete this custom prompt? This cannot be undone.</string>
+    <string name="action_delete_prompt">Delete</string>
+
+    <!-- Accessibility -->
+    <string name="content_desc_hide_prompt">Hide prompt</string>
+    <string name="content_desc_drag_handle">Drag to reorder</string>
+    <string name="content_desc_edit_prompt">Edit prompt</string>
+    <string name="content_desc_delete_prompt">Delete prompt</string>
+
+    <string name="appbar_scrolling_view_behavior" translatable="false">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
+
+    <!-- Voice Sheet Status -->
+    <string name="voice_status_listening">Listening%1$s</string>
+    <string name="voice_status_processing">Processing…</string>
+    <string name="voice_status_error">Error</string>
+    <string name="voice_status_done">Done</string>
 
     <!-- Plan Approval -->
     <string name="plan_approval_title">Plan Ready for Approval</string>
@@ -163,4 +219,7 @@
     <string name="plan_approval_approve">Approve Plan</string>
     <string name="plan_approval_success">Plan approved</string>
     <string name="error_approve_plan">Failed to approve plan</string>
+    <string name="action_dismiss">Dismiss</string>
+
+    <string name="octopus_icon_path" translatable="false">M12,2C8.13,2 5,5.13 5,9c0,1.74 0.5,3.37 1.41,4.66c-0.12,2.67 -0.66,4.64 -2.12,6.13c-0.45,0.46 -0.25,1.25 0.38,1.25c2.3,0 4.19,-1.2 5.1,-3.27C10.37,17.92 11.17,18 12,18c0.83,0 1.63,-0.08 2.38,-0.23c0.91,2.08 2.8,3.27 5.1,3.27c0.63,0 0.83,-0.79 0.38,-1.25c-1.46,-1.49 -2,-3.46 -2.12,-6.13C18.5,12.37 19,10.74 19,9C19,5.13 15.87,2 12,2z M9,9c-0.55,0 -1,-0.45 -1,-1s0.45,-1 1,-1s1,0.45 1,1S9.55,9 9,9z M15,9c-0.55,0 -1,-0.45 -1,-1s0.45,-1 1,-1s1,0.45 1,1S15.55,9 15,9z</string>
 </resources>

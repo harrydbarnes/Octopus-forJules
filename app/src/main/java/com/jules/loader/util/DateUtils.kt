@@ -1,5 +1,6 @@
 package com.jules.loader.util
 
+import android.text.format.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -75,10 +76,11 @@ object DateUtils {
         return "$day$suffix $month"
     }
 
-    fun formatDateShort(dateString: String?, useMmDd: Boolean = false): String? {
+    fun formatDateShort(dateString: String?): String? {
         val date = parseDate(dateString) ?: return null
-        val pattern = if (useMmDd) "MM/dd" else "dd/MM"
-        return getDisplayFormatter(pattern).format(date)
+        val locale = Locale.getDefault()
+        val bestPattern = DateFormat.getBestDateTimePattern(locale, "MMdd")
+        return getDisplayFormatter(bestPattern).format(date)
     }
 
     private fun getDayOfMonthSuffix(n: Int): String {

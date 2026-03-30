@@ -1,7 +1,15 @@
 package com.jules.loader
 
 import android.content.Intent
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.animation.ValueAnimator
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -27,8 +35,11 @@ import com.jules.loader.databinding.ActivityMainBinding
 import com.jules.loader.ui.BaseActivity
 import com.jules.loader.ui.OnboardingActivity
 import com.jules.loader.ui.SessionAdapter
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.jules.loader.util.DateUtils
 import com.jules.loader.util.PreferenceUtils
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
@@ -50,27 +61,58 @@ class MainActivity : BaseActivity() {
     private var nextPageToken: String? = null
     private var isLoadingMore = false
     private var shimmerAnimators: List<ObjectAnimator> = emptyList()
+    private var retryJob: Job? = null
+
+    /** Triggers an immediate reload when the device regains network access. */
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            runOnUiThread {
+                if (binding.errorContainer.visibility == View.VISIBLE) {
+                    retryJob?.cancel()
+                    loadSessions(forceRefresh = true)
+                }
+            }
+        }
+    }
 
     companion object {
-        private const val KEY_SESSIONS = "key_sessions"
-        private const val KEY_NEXT_PAGE_TOKEN = "key_next_page_token"
-        private const val KEY_STOP_TIME = "key_stop_time"
         private const val REFRESH_TIMEOUT_MS = 20000L
+        /** Intent extra: when `true`, immediately shows the no-signal error/game overlay. */
+        const val EXTRA_SIMULATE_NO_SIGNAL = "simulate_no_signal"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        var isReady = false
+        splashScreen.setKeepOnScreenCondition { !isReady }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // IMPORTANT: repository.getInstance() shouldn't block much if properties are lazy
         repository = JulesRepository.getInstance(applicationContext)
 
-        if (repository.getApiKey().isNullOrEmpty()) {
-            startActivity(Intent(this, OnboardingActivity::class.java))
-            finish()
-            return
-        }
+        lifecycleScope.launch {
+            try {
+                val hasApiKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    !repository.getApiKey().isNullOrEmpty()
+                }
 
+                if (!hasApiKey) {
+                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                    finish()
+                } else {
+                    setupMainActivity()
+                }
+            } finally {
+                isReady = true
+            }
+        }
+    }
+
+    private fun setupMainActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.sessions_title)
 
@@ -195,28 +237,12 @@ class MainActivity : BaseActivity() {
         setupSearch()
         setupFilters()
 
-        if (savedInstanceState != null) {
-            val stopTime = savedInstanceState.getLong(KEY_STOP_TIME, 0)
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - stopTime < REFRESH_TIMEOUT_MS) {
-                val restoredSessions = savedInstanceState.getParcelableArrayList<Session>(KEY_SESSIONS)
-                if (restoredSessions != null) {
-                    allSessions = restoredSessions
-                    nextPageToken = savedInstanceState.getString(KEY_NEXT_PAGE_TOKEN)
-                    
-                    binding.sessionsRecyclerView.visibility = View.VISIBLE
-                    binding.skeletonLayout.visibility = View.GONE
-                    binding.errorText.visibility = View.GONE
-                    applyFilters()
-                } else {
-                    loadSessions()
-                }
-            } else {
-                loadSessions()
-            }
-        } else {
-            loadSessions()
-        }
+        loadSessions()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onResume() {
@@ -225,7 +251,6 @@ class MainActivity : BaseActivity() {
         if (::adapter.isInitialized) {
             adapter.isShortenRepoNamesEnabled = shortenRepoNames
             adapter.isShortenDatesEnabled = PreferenceUtils.isShortenDatesEnabled(this)
-            adapter.isDateFormatMMDD = PreferenceUtils.isDateFormatMMDD(this)
             adapter.notifyDataSetChanged()
         }
 
@@ -233,13 +258,51 @@ class MainActivity : BaseActivity() {
             val displayRepo = PreferenceUtils.getDisplayRepoName(repo, shortenRepoNames)
             binding.chipRepo.text = displayRepo
         }
+
+        // Debug: simulate no-signal error state from Settings
+        if (intent.getBooleanExtra(EXTRA_SIMULATE_NO_SIGNAL, false)) {
+            // Clear the extra so re-entry (e.g. screen rotation) doesn't re-trigger
+            intent.putExtra(EXTRA_SIMULATE_NO_SIGNAL, false)
+            showErrorWithGame("Debug: simulated no-signal error")
+        }
+
+        // Register network-available listener so we reload the moment signal returns
+        try {
+            val cm = getSystemService(ConnectivityManager::class.java)
+            cm?.registerNetworkCallback(NetworkRequest.Builder().build(), networkCallback)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Could not register network callback", e)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            val cm = getSystemService(ConnectivityManager::class.java)
+            cm?.unregisterNetworkCallback(networkCallback)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Could not unregister network callback", e)
+        }
+
+        // Ensure any blur RenderEffect applied to the sessions list is cleared
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(null)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Defensive: also clear any remaining blur when the Activity is destroyed
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(null)
+        }
+        retryJob?.cancel()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        // Avoid saving session state to prevent TransactionTooLargeException.
+        // Sessions are reloaded from the repository on restore.
         super.onSaveInstanceState(outState)
-        outState.putParcelableArrayList(KEY_SESSIONS, ArrayList(allSessions))
-        outState.putString(KEY_NEXT_PAGE_TOKEN, nextPageToken)
-        outState.putLong(KEY_STOP_TIME, System.currentTimeMillis())
     }
 
     private fun setupSearch() {
@@ -359,7 +422,7 @@ class MainActivity : BaseActivity() {
         popup.show()
     }
 
-    private fun applyFilters() {
+    private fun applyFilters(onCommit: (() -> Unit)? = null) {
         var filtered = allSessions
 
         // 1. Search Filter
@@ -410,7 +473,11 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        adapter.submitList(filtered)
+        if (onCommit != null) {
+            adapter.submitList(filtered, onCommit)
+        } else {
+            adapter.submitList(filtered)
+        }
         updateFilterIcon()
     }
 
@@ -557,12 +624,25 @@ class MainActivity : BaseActivity() {
     }
 
     private fun loadSessions(forceRefresh: Boolean = false) {
+        retryJob?.cancel()
+        retryJob = null
         val isFirstLoad = !forceRefresh && !repository.hasCachedSessions()
         if (isFirstLoad) {
             binding.skeletonLayout.visibility = View.VISIBLE
             startSkeletonShimmer()
-            binding.errorText.visibility = View.GONE
+            binding.errorContainer.visibility = View.GONE
             binding.sessionsRecyclerView.visibility = View.GONE
+        } else if (!forceRefresh && repository.hasCachedSessions()) {
+            // Restore rotation: immediately show cached sessions so the list is
+            // never blank while the background refresh is in flight.
+            allSessions = repository.getCachedSessions()
+            binding.sessionsRecyclerView.visibility = View.VISIBLE
+            applyFilters()
+        }
+
+        // Show reload spinner inside the game overlay if it's already on screen
+        if (forceRefresh && binding.errorContainer.visibility == View.VISIBLE) {
+            binding.reloadingIndicator.visibility = View.VISIBLE
         }
 
         lifecycleScope.launch {
@@ -572,12 +652,31 @@ class MainActivity : BaseActivity() {
                 allSessions = response.sessions ?: emptyList()
                 nextPageToken = response.nextPageToken
 
+                // If the response is empty but we have cached sessions (e.g. on rotation where the
+                // fresh API call briefly returns nothing), keep showing cached data instead.
+                if (allSessions.isEmpty() && !forceRefresh && repository.hasCachedSessions()) {
+                    allSessions = repository.getCachedSessions()
+                }
+
                 if (allSessions.isEmpty()) {
+                    binding.octopusErrorGame.visibility = View.GONE
+                    binding.errorSignalMessage.visibility = View.GONE
+                    binding.gameBottomArea.visibility = View.GONE
+                    binding.errorContainer.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    // Use theme's on-surface-variant colour so text is readable on the plain background
+                    binding.errorText.setTextColor(
+                        com.google.android.material.color.MaterialColors.getColor(
+                            binding.errorText,
+                            com.google.android.material.R.attr.colorOnSurfaceVariant,
+                            android.graphics.Color.GRAY
+                        )
+                    )
                     binding.errorText.text = getString(R.string.no_sessions)
-                    binding.errorText.visibility = View.VISIBLE
+                    binding.errorContainer.visibility = View.VISIBLE
+                    binding.sessionsRecyclerView.visibility = View.GONE
                     adapter.submitList(emptyList())
                 } else {
-                    binding.errorText.visibility = View.GONE
+                    hideErrorOverlay()
                     binding.sessionsRecyclerView.visibility = View.VISIBLE
                     applyFilters()
                     if (isFirstLoad) {
@@ -585,18 +684,116 @@ class MainActivity : BaseActivity() {
                     }
                 }
             } catch (e: java.io.IOException) {
-                binding.errorText.text = getString(R.string.error_loading_sessions, e.localizedMessage)
-                binding.errorText.visibility = View.VISIBLE
+                showErrorWithGame(getString(R.string.error_loading_sessions, e.localizedMessage))
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
+                // Poor signal: auto-retry every 10s if network is still available
+                scheduleAutoRetry()
             } catch (e: retrofit2.HttpException) {
-                binding.errorText.text = getString(R.string.error_loading_sessions, e.message())
-                binding.errorText.visibility = View.VISIBLE
+                showErrorWithGame(getString(R.string.error_loading_sessions, e.message()))
                 android.util.Log.e("MainActivity", "Error loading sessions", e)
+                // Server error with network: don't auto-retry (not a signal issue)
             } finally {
                 binding.skeletonLayout.visibility = View.GONE
                 stopSkeletonShimmer()
                 binding.swipeRefresh.isRefreshing = false
+                binding.reloadingIndicator.visibility = View.GONE
                 isLoadingMore = false
+            }
+        }
+    }
+
+    private fun scheduleAutoRetry() {
+        // Only auto-retry when the device actually has a network connection.
+        // If not (airplane mode / data off / no WiFi), skip — user must pull-to-refresh.
+        if (!isNetworkAvailable()) return
+        retryJob?.cancel()
+        retryJob = lifecycleScope.launch {
+            delay(10_000L)
+            if (isNetworkAvailable()) {
+                loadSessions(forceRefresh = true)
+            }
+            // If network disappeared during the delay, do nothing (user pull-to-refresh)
+        }
+    }
+
+    /** Returns true when the device has an active network (even if signal is poor). */
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun hideErrorOverlay() {
+        binding.octopusErrorGame.stopGame()
+        // Animate the overlay fading out smoothly
+        binding.errorContainer.animate()
+            .alpha(0f)
+            .setDuration(400L)
+            .withEndAction {
+                binding.errorContainer.visibility = View.GONE
+                binding.errorContainer.alpha = 1f
+                binding.gameBottomArea.visibility = View.GONE
+            }
+            .start()
+        // Simultaneously un-blur the content behind (API 31+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ValueAnimator.ofFloat(20f, 0f).apply {
+                duration = 400L
+                addUpdateListener { animator ->
+                    val blurRadius = animator.animatedValue as Float
+                    if (blurRadius > 0.5f) {
+                        binding.sessionsRecyclerView.setRenderEffect(
+                            RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+                        )
+                    } else {
+                        binding.sessionsRecyclerView.setRenderEffect(null)
+                    }
+                }
+                start()
+            }
+        }
+    }
+
+    private fun showErrorWithGame(message: String) {
+        binding.errorText.text = message
+        binding.errorText.setTextColor(
+            androidx.core.content.ContextCompat.getColor(this, R.color.error_overlay_text_subdued)
+        )
+        binding.errorSignalMessage.visibility = View.VISIBLE
+        binding.octopusErrorGame.visibility = View.VISIBLE
+        binding.gameBottomArea.visibility = View.VISIBLE
+        binding.errorContainer.setBackgroundColor(
+            androidx.core.content.ContextCompat.getColor(this, R.color.error_overlay_background)
+        )
+        // Reset alpha in case a previous hide-animation is still running
+        binding.errorContainer.alpha = 1f
+        binding.errorContainer.visibility = View.VISIBLE
+        // Sessions RecyclerView stays visible behind the dim+blur overlay when sessions exist
+        binding.sessionsRecyclerView.visibility = View.VISIBLE
+
+        // Blur the content behind the overlay (API 31+; dim alone as fallback on older devices)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.sessionsRecyclerView.setRenderEffect(
+                RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
+            )
+        }
+
+        val gameView = binding.octopusErrorGame
+        gameView.highScore = PreferenceUtils.getOctopusHighScore(this)
+        gameView.onGameOver = {
+            val hs = gameView.highScore
+            if (hs > PreferenceUtils.getOctopusHighScore(this)) {
+                PreferenceUtils.setOctopusHighScore(this, hs)
+            }
+        }
+
+        // The entire area below the game: jump while running, restart when game over, start when initial view
+        binding.gameBottomArea.setOnClickListener {
+            if (gameView.isInitialView || gameView.isGameOver) {
+                gameView.startGame()
+            } else {
+                gameView.jump()
             }
         }
     }
@@ -636,12 +833,14 @@ class MainActivity : BaseActivity() {
                 nextPageToken = response.nextPageToken
 
                 allSessions = allSessions + newSessions
-                applyFilters()
+                // Hide the loading footer only after the new items are committed to the
+                // adapter, so the footer stays visible until the rows actually appear.
+                applyFilters { adapter.setLoading(false) }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error loading more sessions", e)
+                adapter.setLoading(false)
             } finally {
                 isLoadingMore = false
-                adapter.setLoading(false)
             }
         }
     }

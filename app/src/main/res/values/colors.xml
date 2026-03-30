@@ -24,4 +24,6 @@
     <color name="octopus_bubble_fill">#66FFFFFF</color>
     <color name="octopus_bubble_stroke">#99FFFFFF</color>
     <color name="archive_red">#B3261E</color>
+    <color name="error_overlay_background">#CC000000</color>
+    <color name="error_overlay_text_subdued">#88FFFFFF</color>
 </resources>
