@@ -664,11 +664,13 @@ class MainActivity : BaseActivity() {
                     binding.gameBottomArea.visibility = View.GONE
                     binding.errorContainer.setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     // Use theme's on-surface-variant colour so text is readable on the plain background
-                    val tv = android.util.TypedValue()
-                    if (theme.resolveAttribute(
-                            com.google.android.material.R.attr.colorOnSurfaceVariant, tv, true)) {
-                        binding.errorText.setTextColor(tv.data)
-                    }
+                    binding.errorText.setTextColor(
+                        com.google.android.material.color.MaterialColors.getColor(
+                            this,
+                            com.google.android.material.R.attr.colorOnSurfaceVariant,
+                            android.graphics.Color.GRAY
+                        )
+                    )
                     binding.errorText.text = getString(R.string.no_sessions)
                     binding.errorContainer.visibility = View.VISIBLE
                     binding.sessionsRecyclerView.visibility = View.GONE

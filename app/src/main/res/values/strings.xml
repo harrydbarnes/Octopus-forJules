@@ -207,6 +207,12 @@
 
     <string name="appbar_scrolling_view_behavior" translatable="false">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
 
+    <!-- Voice Sheet Status -->
+    <string name="voice_status_listening">Listening%1$s</string>
+    <string name="voice_status_processing">Processing…</string>
+    <string name="voice_status_error">Error</string>
+    <string name="voice_status_done">Done</string>
+
     <!-- Plan Approval -->
     <string name="plan_approval_title">Plan Ready for Approval</string>
     <string name="plan_approval_subtitle">Review the plan above, then approve to continue</string>

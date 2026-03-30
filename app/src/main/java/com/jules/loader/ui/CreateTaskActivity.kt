@@ -675,7 +675,7 @@ class CreateTaskActivity : BaseActivity() {
         var dotCount = 1
         val ellipsisRunnable = object : Runnable {
             override fun run() {
-                tvStatus.text = "Listening" + ".".repeat(dotCount)
+                tvStatus.text = getString(R.string.voice_status_listening, ".".repeat(dotCount))
                 dotCount = (dotCount % 3) + 1
                 tvStatus.postDelayed(this, ELLIPSIS_INTERVAL_MS)
             }
@@ -713,7 +713,7 @@ class CreateTaskActivity : BaseActivity() {
                 // Start animated ellipsis
                 dotCount = 1
                 tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Listening."
+                tvStatus.text = getString(R.string.voice_status_listening, ".")
                 tvStatus.postDelayed(ellipsisRunnable, ELLIPSIS_INTERVAL_MS)
                 wavyIndicator.startListening()
             }
@@ -727,7 +727,7 @@ class CreateTaskActivity : BaseActivity() {
                 // User paused — return to gentle resting ripple while results are processed.
                 // Do NOT settle to flat yet; the user may start speaking again.
                 tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Processing..."
+                tvStatus.text = getString(R.string.voice_status_processing)
                 wavyIndicator.returnToResting()
             }
             override fun onError(error: Int) {
@@ -735,7 +735,7 @@ class CreateTaskActivity : BaseActivity() {
                 tvStatus.removeCallbacks(ellipsisRunnable)
                 pendingSettleRunnable?.let { wavyIndicator.removeCallbacks(it) }
                 pendingSettleRunnable = null
-                tvStatus.text = "Error"
+                tvStatus.text = getString(R.string.voice_status_error)
                 dialog.dismiss()
             }
             override fun onResults(results: Bundle?) {
@@ -747,7 +747,7 @@ class CreateTaskActivity : BaseActivity() {
                     binding.taskInput.setSelection(newText.length)
                 }
                 tvStatus.removeCallbacks(ellipsisRunnable)
-                tvStatus.text = "Done"
+                tvStatus.text = getString(R.string.voice_status_done)
                 // Delay 2 s so the user can read their transcription before the wave settles
                 // and the sheet auto-dismisses. Settling to flat triggers onSettledToFlat → dismiss.
                 val settleRunnable = Runnable { wavyIndicator.stopListening() }

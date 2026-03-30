@@ -186,7 +186,7 @@ class ManagePromptsActivity : BaseActivity() {
             else try {
                 val type = object : TypeToken<List<String>>() {}.type
                 val list: List<String> = gson.fromJson(orderJson, type) ?: emptyList()
-                list.isNotEmpty() && list != DEFAULT_PROMPT_ORDER
+                list.isNotEmpty() && list != defaultPromptOrder()
             } catch (_: Exception) { false }
         }
 
@@ -202,6 +202,9 @@ class ManagePromptsActivity : BaseActivity() {
         val isModified = hasCustomPrompts || hasCustomOrder || hasDisabledPrompts
         binding.toolbar.menu.findItem(R.id.action_reset_all)?.isVisible = isModified
     }
+
+    private fun defaultPromptOrder(): List<String> =
+        DefaultPrompts.getDefaultPrompts(this).map { it.id }
 
     private fun showGlobalResetConfirmation() {
         MaterialAlertDialogBuilder(this)
